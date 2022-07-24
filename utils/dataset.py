@@ -33,22 +33,21 @@ class FreiHAND(Dataset):
         # Open data files.
         fn_k_matrix = os.path.join(config["data_dir"], "training_K.json")
         with open(fn_k_matrix, "r") as file:
-            self.k_matrix = np.array(json.load(file))
+            self.k_matrix = np.tile(np.array(json.load(file)), (4, 1, 1))
 
         fn_annotation_3d = os.path.join(config["data_dir"], "training_xyz.json")
         with open(fn_annotation_3d, "r") as file:
-            self.annotation_3d = np.array(json.load(file))
+            self.annotation_3d = np.tile(np.array(json.load(file)), (4, 1, 1))
 
         # Set dataset split
-        # TODO: adjust these value splits based on needs
         if set_type == "train":
             n_start = 0
-            n_end = 52000
+            n_end = 104000
         elif set_type == "val":
-            n_start = 52000
-            n_end = 57000
+            n_start = 104000
+            n_end = 124000
         else:
-            n_start = 57000
+            n_start = 124000
             n_end = len(self.annotation_3d)
 
         # Utilize variables to split dataset
@@ -90,4 +89,7 @@ class FreiHAND(Dataset):
             "keypoints": keypoints,
             "heatmaps": heatmaps,
         }
+
+    def __len__(self):
+        return len(self.annotation_3d)
 
