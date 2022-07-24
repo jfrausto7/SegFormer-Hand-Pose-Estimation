@@ -6,7 +6,15 @@ import torch
 from torchvision import transforms
 from torch.utils.data import Dataset
 
-from utils.utils import DATASET_MEANS, DATASET_STDS, MODEL_IMG_SIZE, RAW_IMG_SIZE, projectPoints, vector_to_heatmaps
+from utils.utils import (
+    DATASET_MEANS,
+    DATASET_STDS,
+    MODEL_IMG_SIZE,
+    RAW_IMG_SIZE,
+    projectPoints,
+    vector_to_heatmaps,
+)
+
 
 class FreiHAND(Dataset):
     """
@@ -27,8 +35,7 @@ class FreiHAND(Dataset):
         with open(fn_k_matrix, "r") as file:
             self.k_matrix = np.array(json.load(file))
 
-        fn_annotation_3d = os.path.join(
-            config["data_dir"], "training_xyz.json")
+        fn_annotation_3d = os.path.join(config["data_dir"], "training_xyz.json")
         with open(fn_annotation_3d, "r") as file:
             self.annotation_3d = np.array(json.load(file))
 
@@ -61,14 +68,15 @@ class FreiHAND(Dataset):
 
     def __getitem__(self, index):
         # Pull data from index
-        name = self.data_names[index]
-        raw = Image.open(os.path.join(self.data_dir, name))
+        image_name = self.data_names[index]
+        raw = Image.open(os.path.join(self.data_dir, image_name))
         image_raw = self.image_raw_transformed(raw)
         image = self.image_transformed(raw)
 
         # Initialize keypoints & heatmaps
-        keypoints = (projectPoints(
-            self.annotation_3d[index], self.k_matrix[index])) / RAW_IMG_SIZE
+        keypoints = (
+            projectPoints(self.annotation_3d[index], self.k_matrix[index])
+        ) / RAW_IMG_SIZE
         heatmaps = vector_to_heatmaps(keypoints)
 
         # Convert both to tensors
@@ -76,10 +84,10 @@ class FreiHAND(Dataset):
         heatmaps = torch.from_numpy(np.float32(heatmaps))
 
         return {
-            "image" : image,
-            "image_name" : name,
-            "image_raw" : raw,
-            "keypoints" : keypoints,
-            "heatmaps" : heatmaps,
+            "image": image,
+            "image_name": image_name,
+            "image_raw": image_raw,
+            "keypoints": keypoints,
+            "heatmaps": heatmaps,
         }
-        
+

@@ -1,4 +1,3 @@
-
 from cv2 import GaussianBlur
 import numpy as np
 
@@ -28,8 +27,7 @@ def blur_heatmaps(heatmaps):
     for k in range(len(heatmaps)):
         if heatmaps_blurred[k].max() == 1:
             heatmaps_blurred[k] = GaussianBlur(heatmaps[k], (51, 51), N_IMG_CHANNELS)
-            heatmaps_blurred[k] = heatmaps_blurred[k] / \
-                heatmaps_blurred[k].max()
+            heatmaps_blurred[k] = heatmaps_blurred[k] / heatmaps_blurred[k].max()
     return heatmaps_blurred
 
 
