@@ -2,12 +2,13 @@
 import argparse
 import json
 import os
+from PIL import Image
 import numpy as np
 import torch
 from torchvision import transforms
 from torch.utils.data import Dataset
 
-from utils import DATASET_MEANS, DATASET_STDS, MODEL_IMG_SIZE
+from utils import DATASET_MEANS, DATASET_STDS, MODEL_IMG_SIZE, RAW_IMG_SIZE, projectPoints, vector_to_heatmaps
 
 
 def parse_args() -> argparse.Namespace:
@@ -108,5 +109,26 @@ class FreiHAND(Dataset):
             ]
         )
 
-    def __getitem__(self):
-        pass
+    def __getitem__(self, index):
+        # Pull data from index
+        name = self.data_names[index]
+        raw = Image.open(os.path.join(self.data_dir, name))
+        image_raw = self.image_raw_transformed(raw)
+        image = self.image_transformed(raw)
+
+        # Initialize keypoints & heatmaps
+        keypoints = (projectPoints(
+            self.annotation_3d[index], self.k_matrix[index])) / RAW_IMG_SIZE
+        heatmaps = vector_to_heatmaps(keypoints)
+
+        # Convert both to tensors
+        keypoints = torch.from_numpy(keypoints)
+        heatmaps = torch.from_numpy(np.float32(heatmaps))
+
+        return {
+            "image" : image,
+            "image_name" : name,
+            "image_raw" : raw,
+            "keypoints" : keypoints,
+            "heatmaps" : heatmaps,
+        }
