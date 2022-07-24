@@ -1,8 +1,14 @@
 
 import argparse
+import json
+import os
+import numpy as np
 import torch
 from torchvision import transforms
 from torch.utils.data import Dataset
+
+from utils import DATASET_MEANS, DATASET_STDS, MODEL_IMG_SIZE
+
 
 def parse_args() -> argparse.Namespace:
     """Parse arguments from command line into ARGS."""
@@ -50,13 +56,57 @@ def parse_args() -> argparse.Namespace:
 
     return parser.parse_args()
 
-class FreiHAND(Dataset):
-  """
-  Class for loading the FreiHAND dataset.
-  Augmented images not to be used.
 
-  Link to dataset: https://lmb.informatik.uni-freiburg.de/projects/freihand/
-  """
-  def __init__(self):
-     # TODO
-     pass
+class FreiHAND(Dataset):
+    """
+    Class for loading the FreiHAND dataset.
+    Augmented images not to be used.
+
+    Link to dataset: https://lmb.informatik.uni-freiburg.de/projects/freihand/
+    """
+
+    def __init__(self, config, set_type="train"):
+        # Define class attributes.
+        self.device = config["device"]
+        self.data_dir = os.path.join(config["data_dir"], "training/rgb")
+        self.data_names = np.sort(os.listdir(self.data_dir))
+
+        # Open data files.
+        fn_k_matrix = os.path.join(config["data_dir"], "training_K.json")
+        with open(fn_k_matrix, "r") as file:
+            self.k_matrix = np.array(json.load(file))
+
+        fn_annotation_3d = os.path.join(
+            config["data_dir"], "training_xyz.json")
+        with open(fn_annotation_3d, "r") as file:
+            self.annotation_3d = np.array(json.load(file))
+
+        # Set dataset split
+        # TODO: adjust these value splits based on needs
+        if set_type == "train":
+            n_start = 0
+            n_end = 52000
+        elif set_type == "val":
+            n_start = 52000
+            n_end = 57000
+        else:
+            n_start = 57000
+            n_end = len(self.annotation_3d)
+
+        # Utilize variables to split dataset
+        self.data_names = self.data_names[n_start:n_end]
+        self.k_matrix = self.k_matrix[n_start:n_end]
+        self.annotation_3d = self.annotation_3d[n_start:n_end]
+
+        # Apply transformations to raw data
+        self.image_raw_transformed = transforms.ToTensor()
+        self.image_transformed = transforms.Compose(
+            [
+                transforms.Resize(MODEL_IMG_SIZE),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=DATASET_MEANS, std=DATASET_STDS),
+            ]
+        )
+
+    def __getitem__(self):
+        pass
