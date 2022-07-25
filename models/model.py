@@ -38,24 +38,6 @@ class PatchEmbedding(nn.Module):
         return x
 
 
-class EncoderBlock(nn.Sequential):
-    """
-    Transformer Encoder block proposed in `Attention Is All You Need`.
-
-    Link to original paper: https://arxiv.org/abs/1706.03762
-    """
-
-    def __init__(
-        self,
-        emb_size: int = 768,
-        drop_p: float = 0.0,
-        forward_expansion: int = 4,
-        forward_drop_p: float = 0.0,
-        **kwargs,
-    ):
-        super().__init__()
-
-
 class MultiHeadAttention(nn.Module):
     """
     Multi head attention proposed in `Attention Is All You Need`
@@ -114,7 +96,44 @@ class FeedForwardBlock(nn.Sequential):
             nn.Linear(emb_size, emb_size * expansion),
             nn.GELU(),
             nn.Dropout(drop_p),
-            nn.Linear(emb_size * expansion, emb_size)
+            nn.Linear(emb_size * expansion, emb_size),
+        )
+
+
+class EncoderBlock(nn.Sequential):
+    """
+    Transformer Encoder block proposed in `Attention Is All You Need`.
+
+    Link to original paper: https://arxiv.org/abs/1706.03762
+    """
+
+    def __init__(
+        self,
+        emb_size: int = 768,
+        drop_p: float = 0.0,
+        forward_expansion: int = 4,
+        forward_drop_p: float = 0.0,
+        **kwargs,
+    ):
+        super().__init__(
+            ResidualAdd(
+                nn.Sequential(
+                    nn.LayerNorm(emb_size),
+                    MultiHeadAttention(emb_size=emb_size, **kwargs),
+                    nn.Dropout(drop_p),
+                )
+            ),
+            ResidualAdd(
+                nn.Sequential(
+                    nn.LayerNorm(emb_size),
+                    FeedForwardBlock(
+                        emb_size=emb_size,
+                        expansion=forward_expansion,
+                        drop_p=forward_drop_p,
+                    ),
+                    nn.Dropout(drop_p),
+                )
+            ),
         )
 
 
