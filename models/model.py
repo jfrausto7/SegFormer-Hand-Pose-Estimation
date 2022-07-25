@@ -6,7 +6,11 @@ from einops.layers.torch import Rearrange
 
 class PatchEmbedding(nn.Module):
     def __init__(
-        self, in_channels: int = 3, patch_size: int = 16, emb_size: int = 768,
+        self,
+        in_channels: int = 3,
+        patch_size: int = 16,
+        emb_size: int = 768,
+        img_size: int = 224,
     ):
         self.patch_size = patch_size
         super().__init__()
@@ -17,6 +21,9 @@ class PatchEmbedding(nn.Module):
         )
         # class token
         self.class_token = nn.Parameter(torch.randn(1, 1, emb_size))
+        self.positions = nn.Parameter(
+            torch.randn((img_size // patch_size) ** 2 + 1, emb_size)
+        )
 
     def forward(self, x: Tensor):
         (b,) = x.shape
@@ -24,6 +31,8 @@ class PatchEmbedding(nn.Module):
         # utilize class tokens and prepend to input
         class_tokens = repeat(self.class_token, "() n e -> b n e", b=b)
         x = torch.cat([class_tokens, x], dim=1)
+        # add position embedding
+        x += self.positions
         return x
 
 
