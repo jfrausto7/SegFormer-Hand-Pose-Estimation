@@ -1,4 +1,22 @@
-from torch import nn
+from torch import Tensor, nn
+from einops.layers.torch import Rearrange
+
+
+class PatchEmbedding(nn.Module):
+    def __init__(
+        self, in_channels: int = 3, patch_size: int = 16, emb_size: int = 768,
+    ):
+        self.patch_size = patch_size
+        super().__init__()
+        self.projection = nn.Sequential(
+            # break down each image into patches and flatten
+            nn.Conv2d(in_channels, emb_size, kernel_size=patch_size, stride=patch_size),
+            Rearrange("b e (h) (w) -> b (h w) e"),  # pylint: disable=syntax-error
+        )
+
+    def forward(self, x: Tensor):
+        x = self.projection(x)
+        return x
 
 
 class ViT(nn.Sequential):
@@ -19,6 +37,7 @@ class ViT(nn.Sequential):
         emb_size: int = 768,
         img_size: int = 224,
         depth: int = 12,
-        out_channels: int = 50 ** kwargs,
+        out_channels: int = 50,
+        **kwargs,
     ):
         super().__init__()
