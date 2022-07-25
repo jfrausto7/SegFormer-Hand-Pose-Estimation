@@ -74,7 +74,8 @@ class FeedForwardBlock(nn.Sequential):
 
 class TransformerEncoder(nn.Sequential):
     """
-    Transformer Encoder proposed in `Attention Is All You Need`
+    Transformer Encoder proposed in `Attention Is All You Need`. The ViT architecture
+    only uses the Encoder, which is why the decoder is omitted. 
 
     Link to original paper: https://arxiv.org/abs/1706.03762
     """
