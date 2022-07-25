@@ -1,10 +1,11 @@
 import argparse
+import numpy as np
 
 import torch
 from torch.utils.data import DataLoader
 
 from utils.dataset import FreiHAND
-from utils.utils import show_data
+from utils.utils import _epoch_eval, epoch_eval, epoch_train, show_data
 
 # TODO: adjust following config vals
 config = {
@@ -64,13 +65,83 @@ def get_split_data():
 
     # Validation dataset split
     val_dataset = FreiHAND(config=config, set_type="val")
-    print(val_dataset.__len__())
     val_dataloader = DataLoader(
         val_dataset, config["batch_size"], shuffle=True, drop_last=True, num_workers=2
     )
 
     # Visualize a random batch of data train samples & labels
     show_data(train_dataset)
+
+
+def train(
+    train_dataloader,
+    val_dataloader,
+    epochs,
+    loss,
+    optimizer,
+    criterion,
+    scheduler,
+    checkpoint_frequency,
+    model,
+    early_stopping_avg,
+    early_stopping_precision,
+    early_stopping_epochs,
+):
+    for epoch in range(epochs):
+        epoch_train(
+            train_dataloader,
+            config["device"],
+            model,
+            optimizer,
+            criterion,
+            config["batches_per_epoch"],
+        )
+        epoch_eval(
+            val_dataloader,
+            config["device"],
+            model,
+            optimizer,
+            criterion,
+            config["batches_per_epoch_val"],
+        )
+        print(
+            "Epoch: {}/{}, Train Loss={}, Val Loss={}".format(
+                epoch + 1,
+                epochs,
+                np.round(loss["train"][-1], 10),
+                np.round(loss["val"][-1], 10),
+            )
+        )
+
+        # reducing LR if no improvement
+        if scheduler is not None:
+            scheduler.step(loss["train"][-1])
+
+        # save model
+        if (epoch + 1) % checkpoint_frequency == 0:
+            torch.save(model.state_dict(), "model_{}".format(str(epoch + 1).zfill(3)))
+
+        # stop early
+        if epoch < early_stopping_avg:
+            min_val_loss = np.round(np.mean(loss["val"]), early_stopping_precision)
+            no_decrease_epochs = 0
+
+        else:
+            val_loss = np.round(
+                np.mean(loss["val"][-early_stopping_avg:]), early_stopping_precision,
+            )
+            if val_loss >= min_val_loss:
+                no_decrease_epochs += 1
+            else:
+                min_val_loss = val_loss
+                no_decrease_epochs = 0
+
+        if no_decrease_epochs > early_stopping_epochs:
+            print("Stopping early")
+            break
+
+    torch.save(model.state_dict(), "model_final")
+    return model
 
 
 def main(args: argparse.Namespace) -> None:

@@ -1,6 +1,7 @@
 from cv2 import GaussianBlur
 from matplotlib import pyplot as plt
 import numpy as np
+import torch
 
 
 N_KEYPOINTS = 21
@@ -54,6 +55,7 @@ def vector_to_heatmaps(keypoints):
     heatmaps = blur_heatmaps(heatmaps)
     return heatmaps
 
+
 def show_data(dataset, n_samples=12):
     """
     Function to visualize data
@@ -83,3 +85,46 @@ def show_data(dataset, n_samples=12):
             )
     plt.tight_layout()
     plt.show()
+
+
+def epoch_train(dataloader, device, model, optimizer, criterion, batches_per_epoch):
+    model.train()
+    running_loss = []
+
+    for i, data in enumerate(dataloader, 0):
+        inputs = data["image"].to(device)
+        labels = data["heatmaps"].to(device)
+
+        optimizer.zero_grad()
+
+        outputs = model(inputs)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+
+        running_loss.append(loss.item())
+
+        if i == batches_per_epoch:
+            epoch_loss = np.mean(running_loss)
+            loss["train"].append(epoch_loss)
+            break
+
+
+def epoch_eval(dataloader, device, model, optimizer, criterion, batches_per_epoch_val):
+    model.eval()
+    running_loss = []
+
+    with torch.no_grad():
+        for i, data in enumerate(dataloader, 0):
+            inputs = data["image"].to(device)
+            labels = data["heatmaps"].to(device)
+
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+
+            running_loss.append(loss.item())
+
+            if i == batches_per_epoch_val:
+                epoch_loss = np.mean(running_loss)
+                loss["val"].append(epoch_loss)
+                break
