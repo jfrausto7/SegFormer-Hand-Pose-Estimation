@@ -110,7 +110,7 @@ def epoch_train(dataloader, device, model, optimizer, criterion, batches_per_epo
             break
 
 
-def epoch_eval(dataloader, device, model, optimizer, criterion, batches_per_epoch_val):
+def epoch_eval(dataloader, device, model, criterion, batches_per_epoch_val):
     model.eval()
     running_loss = []
 

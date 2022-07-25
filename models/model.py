@@ -28,7 +28,7 @@ class PatchEmbedding(nn.Module):
         )
 
     def forward(self, x: Tensor):
-        (b,) = x.shape
+        b = x.shape[0]
         x = self.projection(x)
         # utilize class tokens and prepend to input
         class_tokens = repeat(self.class_token, "() n e -> b n e", b=b)
@@ -55,7 +55,7 @@ class MultiHeadAttention(nn.Module):
         self.attention_drop = nn.Dropout(dropout)
         self.projection = nn.Linear(emb_size, emb_size)
 
-    def forward(self, x, mask):
+    def forward(self, x, mask = None):
         # split keys, queries, and values in num_heads
         keys = rearrange(self.keys(x), "b n (h d) -> b h n d", h=self.num_heads)
         queries = rearrange(self.queries(x), "b n (h d) -> b h n d", h=self.num_heads)
@@ -71,7 +71,7 @@ class MultiHeadAttention(nn.Module):
         attention = F.softmax(energy, dim=1) / scaling
         attention = self.attention_drop(attention)
 
-        # sum up over third axis
+        # dot product
         out = torch.einsum("bhal, bhlv -> bhav ", attention, values)
         out = rearrange(out, "b h n d -> b n (h d)")
         out = self.projection(out)

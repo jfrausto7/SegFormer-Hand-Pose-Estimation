@@ -3,9 +3,11 @@ import numpy as np
 
 import torch
 from torch.utils.data import DataLoader
+from torchsummary import summary  # type: ignore
+from models.model import ViT
 
 from utils.dataset import FreiHAND
-from utils.utils import _epoch_eval, epoch_eval, epoch_train, show_data
+from utils.utils import N_KEYPOINTS, epoch_eval, epoch_train, show_data
 
 # TODO: adjust following config vals
 config = {
@@ -70,7 +72,9 @@ def get_split_data():
     )
 
     # Visualize a random batch of data train samples & labels
-    show_data(train_dataset)
+    # show_data(train_dataset)
+
+    return train_dataloader, val_dataloader
 
 
 def train(
@@ -100,7 +104,6 @@ def train(
             val_dataloader,
             config["device"],
             model,
-            optimizer,
             criterion,
             config["batches_per_epoch_val"],
         )
@@ -148,7 +151,9 @@ def main(args: argparse.Namespace) -> None:
     print("hello")
     if args.train:
         print("getting data")
-        get_split_data()
+        train_dataloader, val_dataloader = get_split_data()
+        ViT_model = ViT(out_channels=N_KEYPOINTS)
+        summary(ViT_model, (3, 224, 224))
 
 
 if __name__ == "__main__":
