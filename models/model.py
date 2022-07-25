@@ -21,6 +21,7 @@ class PatchEmbedding(nn.Module):
         )
         # class token
         self.class_token = nn.Parameter(torch.randn(1, 1, emb_size))
+        # position embedding
         self.positions = nn.Parameter(
             torch.randn((img_size // patch_size) ** 2 + 1, emb_size)
         )
@@ -38,8 +39,8 @@ class PatchEmbedding(nn.Module):
 
 class EncoderBlock(nn.Sequential):
     """
-    Transformer Encoder block proposed in `Attention Is All You Need`_
-    
+    Transformer Encoder block proposed in `Attention Is All You Need`.
+
     Link to original paper: https://arxiv.org/abs/1706.03762
     """
 
@@ -60,22 +61,31 @@ class MultiHeadAttention(nn.Module):
 
     Link to original paper: https://arxiv.org/abs/1706.03762
     """
+
     def __init__(self, emb_size: int = 512, num_heads: int = 8, dropout: float = 0):
         super().__init__()
+
+    def forward(self):
+        pass
 
 
 class ResidualAdd(nn.Module):
     def __init__(self, fn):
         super().__init__()
 
+    def forward(self):
+        pass
+
+
 class FeedForwardBlock(nn.Sequential):
-    def __init__(self, emb_size: int, expansion: int = 4, drop_p: float = 0.):
+    def __init__(self, emb_size: int, expansion: int = 4, drop_p: float = 0.0):
         super().__init__()
+
 
 class TransformerEncoder(nn.Sequential):
     """
     Transformer Encoder proposed in `Attention Is All You Need`. The ViT architecture
-    only uses the Encoder, which is why the decoder is omitted. 
+    only uses the Encoder, which is why the decoder is omitted.
 
     Link to original paper: https://arxiv.org/abs/1706.03762
     """
@@ -86,12 +96,12 @@ class TransformerEncoder(nn.Sequential):
 
 class ViT(nn.Sequential):
     """
-    Implementation of Vision Transformer (ViT) proposed in 
+    Implementation of Vision Transformer (ViT) proposed in
     `An Image Is Worth 16x16 Words: Transformers For Image Recognition At Scale`.
 
     This model architecture is repurposed/redesigned here for the purpose of 2D
     Hand Pose Estimation.
-    
+
     Link to original paper: https://arxiv.org/pdf/2010.11929.pdf_
     """
 
