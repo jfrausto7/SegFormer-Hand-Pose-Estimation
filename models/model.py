@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 from einops import rearrange, repeat
-from einops.layers.torch import Rearrange
+from einops.layers.torch import Rearrange, Reduce
 
 
 class PatchEmbedding(nn.Module):
@@ -147,6 +147,15 @@ class TransformerEncoder(nn.Sequential):
 
     def __init__(self, depth: int = 12, **kwargs):
         super().__init__(*[EncoderBlock(**kwargs) for _ in range(depth)])
+
+
+class ClassificationHead(nn.Sequential):
+    def __init__(self, emb_size: int = 768, out_channels: int = 50):
+        super().__init__(
+            Reduce("b n e -> b e", reduction="mean"),
+            nn.LayerNorm(emb_size),
+            nn.Linear(emb_size, out_channels),
+        )
 
 
 class ViT(nn.Sequential):
