@@ -2,9 +2,10 @@ import argparse
 import numpy as np
 
 import torch
+import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchsummary import summary  # type: ignore
-from models.model import ViT
+from models.model import IoULoss, ViT
 
 from utils.dataset import FreiHAND
 from utils.utils import N_KEYPOINTS, epoch_eval, epoch_train, show_data
@@ -32,6 +33,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--train", help="Train", action="store_true", dest="train")
 
     parser.add_argument("--test", help="Test", action="store_true", dest="test")
+
+    parser.add_argument(
+        "--inference", help="Inference", action="store_true", dest="inference"
+    )
 
     parser.add_argument(
         "--weights",
@@ -72,7 +77,7 @@ def get_split_data():
     )
 
     # Visualize a random batch of data train samples & labels
-    # show_data(train_dataset)
+    show_data(train_dataset)
 
     return train_dataloader, val_dataloader
 
@@ -148,12 +153,38 @@ def train(
 
 
 def main(args: argparse.Namespace) -> None:
-    print("hello")
+
     if args.train:
-        print("getting data")
+        # Retrieve data
+        print("Loading data...")
         train_dataloader, val_dataloader = get_split_data()
+
+        # Instantiate model and etc.
         ViT_model = ViT(out_channels=N_KEYPOINTS)
+        criterion = IoULoss()
+        optimizer = optim.SGD(ViT_model.parameters(), lr=config["learning_rate"])
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer=optimizer,
+            factor=0.5,
+            patience=20,
+            verbose=True,
+            threshold=0.00001,
+        )
+
+        # Print model summary
         summary(ViT_model, (3, 224, 224))
+
+        # TODO: train the model
+
+        # TODO: plot loss of training and validation sets
+
+    if args.test:
+        # TODO: evaluate model performance on test data
+        pass
+
+    if args.inference:
+        # TODO: perform inference on test data
+        pass
 
 
 if __name__ == "__main__":

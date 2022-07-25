@@ -55,7 +55,7 @@ class MultiHeadAttention(nn.Module):
         self.attention_drop = nn.Dropout(dropout)
         self.projection = nn.Linear(emb_size, emb_size)
 
-    def forward(self, x, mask = None):
+    def forward(self, x, mask=None):
         # split keys, queries, and values in num_heads
         keys = rearrange(self.keys(x), "b n (h d) -> b h n d", h=self.num_heads)
         queries = rearrange(self.queries(x), "b n (h d) -> b h n d", h=self.num_heads)
@@ -65,7 +65,9 @@ class MultiHeadAttention(nn.Module):
         energy = torch.einsum("bhqd, bhkd -> bhqk", queries, keys)
         if mask is not None:
             fill_value = torch.finfo(torch.float32).min
-            energy.mask_fill(~mask, fill_value)
+            energy.mask_fill(
+                ~mask, fill_value   # pylint: disable=invalid-unary-operand-type
+            )
 
         scaling = self.emb_size ** (1 / 2)
         attention = F.softmax(energy, dim=1) / scaling
@@ -156,6 +158,32 @@ class ClassificationHead(nn.Sequential):
             nn.LayerNorm(emb_size),
             nn.Linear(emb_size, out_channels),
         )
+
+
+class IoULoss(nn.Module):
+    """
+    Intersection over Union Loss.
+    IoU = Area of Overlap / Area of Union
+    IoU loss is modified to use for heatmaps.
+    """
+
+    def __init__(self):
+        super(IoULoss, self).__init__()
+        self.EPSILON = 1e-6  # pylint: disable=invalid-name
+
+    def op_sum(self, x):
+        return x.sum(-1).sum(-1)
+
+    def forward(self, y_pred, y_true):
+        inter = self.op_sum(y_true * y_pred)
+        union = (
+            self.op_sum(y_true ** 2)
+            + self.op_sum(y_pred ** 2)
+            - self.op_sum(y_true * y_pred)
+        )
+        iou = (inter + self.EPSILON) / (union + self.EPSILON)
+        iou = torch.mean(iou)
+        return 1 - iou
 
 
 class ViT(nn.Sequential):
