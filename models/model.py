@@ -81,7 +81,7 @@ class MultiHeadAttention(nn.Module):
 class ResidualAdd(nn.Module):
     def __init__(self, fn):
         super().__init__()
-        self.fn = fn
+        self.fn = fn  # pylint: disable=invalid-name
 
     def forward(self, x, **kwargs):
         res = x
@@ -179,4 +179,8 @@ class ViT(nn.Sequential):
         out_channels: int = 50,
         **kwargs,
     ):
-        super().__init__()
+        super().__init__(
+            PatchEmbedding(in_channels, patch_size, emb_size, img_size),
+            TransformerEncoder(depth, **kwargs),
+            ClassificationHead(emb_size, out_channels),
+        )
