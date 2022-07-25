@@ -146,7 +146,7 @@ class TransformerEncoder(nn.Sequential):
     """
 
     def __init__(self, depth: int = 12, **kwargs):
-        super().__init__()
+        super().__init__(*[EncoderBlock(**kwargs) for _ in range(depth)])
 
 
 class ViT(nn.Sequential):
