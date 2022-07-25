@@ -36,6 +36,53 @@ class PatchEmbedding(nn.Module):
         return x
 
 
+class EncoderBlock(nn.Sequential):
+    """
+    Transformer Encoder block proposed in `Attention Is All You Need`_
+    
+    Link to original paper: https://arxiv.org/abs/1706.03762
+    """
+
+    def __init__(
+        self,
+        emb_size: int = 768,
+        drop_p: float = 0.0,
+        forward_expansion: int = 4,
+        forward_drop_p: float = 0.0,
+        **kwargs,
+    ):
+        super().__init__()
+
+
+class MultiHeadAttention(nn.Module):
+    """
+    Multi head attention proposed in `Attention Is All You Need`
+
+    Link to original paper: https://arxiv.org/abs/1706.03762
+    """
+    def __init__(self, emb_size: int = 512, num_heads: int = 8, dropout: float = 0):
+        super().__init__()
+
+
+class ResidualAdd(nn.Module):
+    def __init__(self, fn):
+        super().__init__()
+
+class FeedForwardBlock(nn.Sequential):
+    def __init__(self, emb_size: int, expansion: int = 4, drop_p: float = 0.):
+        super().__init__()
+
+class TransformerEncoder(nn.Sequential):
+    """
+    Transformer Encoder proposed in `Attention Is All You Need`
+
+    Link to original paper: https://arxiv.org/abs/1706.03762
+    """
+
+    def __init__(self, depth: int = 12, **kwargs):
+        super().__init__()
+
+
 class ViT(nn.Sequential):
     """
     Implementation of Vision Transformer (ViT) proposed in 
