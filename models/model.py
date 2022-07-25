@@ -99,9 +99,13 @@ class MultiHeadAttention(nn.Module):
 class ResidualAdd(nn.Module):
     def __init__(self, fn):
         super().__init__()
+        self.fn = fn
 
-    def forward(self):
-        pass
+    def forward(self, x, **kwargs):
+        res = x
+        x = self.fn(x, **kwargs)
+        x += res
+        return x
 
 
 class FeedForwardBlock(nn.Sequential):
