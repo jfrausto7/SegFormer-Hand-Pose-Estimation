@@ -1,5 +1,4 @@
 import argparse
-import datetime
 from matplotlib import pyplot as plt
 import numpy as np
 
@@ -10,7 +9,14 @@ from torchsummary import summary  # type: ignore
 from models.model import IoULoss, ViT
 
 from utils.dataset import FreiHAND
-from utils.utils import MODEL_IMG_SIZE, N_KEYPOINTS, epoch_eval, epoch_train, show_data
+from utils.utils import (
+    MODEL_IMG_SIZE,
+    N_IMG_CHANNELS,
+    N_KEYPOINTS,
+    epoch_eval,
+    epoch_train,
+    show_data,
+)
 
 # TODO: adjust following config vals
 config = {
@@ -62,6 +68,13 @@ def parse_args() -> argparse.Namespace:
         dest="viz",
     )
 
+    parser.add_argument(
+        "--show-data",
+        help="Visualize random batch of data train samples & labels",
+        action="store_true",
+        dest="show_data",
+    )
+
     return parser.parse_args()
 
 
@@ -77,9 +90,6 @@ def get_split_data():
     val_dataloader = DataLoader(
         val_dataset, config["batch_size"], shuffle=True, drop_last=True, num_workers=0
     )
-
-    # Visualize a random batch of data train samples & labels
-    # show_data(train_dataset)
 
     return train_dataloader, val_dataloader
 
@@ -162,6 +172,11 @@ def train(
 
 def main(args: argparse.Namespace) -> None:
 
+    if args.show_data:
+        # Visualize a random batch of data train samples & labels
+        train_dataset = FreiHAND(config=config, set_type="train")
+        show_data(train_dataset)
+
     if args.train:
         # Retrieve data
         print("Loading data...")
@@ -180,7 +195,7 @@ def main(args: argparse.Namespace) -> None:
         )
 
         # Print model summary
-        # summary(ViT_model, (3, 224, 224))
+        summary(ViT_model, (N_IMG_CHANNELS, MODEL_IMG_SIZE, MODEL_IMG_SIZE))
 
         # Train the model
         _, loss = train(
