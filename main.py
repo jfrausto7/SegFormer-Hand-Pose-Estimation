@@ -1,4 +1,6 @@
 import argparse
+import datetime
+from matplotlib import pyplot as plt
 import numpy as np
 
 import torch
@@ -8,7 +10,7 @@ from torchsummary import summary  # type: ignore
 from models.model import IoULoss, ViT
 
 from utils.dataset import FreiHAND
-from utils.utils import N_KEYPOINTS, epoch_eval, epoch_train, show_data
+from utils.utils import MODEL_IMG_SIZE, N_KEYPOINTS, epoch_eval, epoch_train, show_data
 
 # TODO: adjust following config vals
 config = {
@@ -67,17 +69,17 @@ def get_split_data():
     # Training dataset split
     train_dataset = FreiHAND(config=config, set_type="train")
     train_dataloader = DataLoader(
-        train_dataset, config["batch_size"], shuffle=True, drop_last=True, num_workers=2
+        train_dataset, config["batch_size"], shuffle=True, drop_last=True, num_workers=0
     )
 
     # Validation dataset split
     val_dataset = FreiHAND(config=config, set_type="val")
     val_dataloader = DataLoader(
-        val_dataset, config["batch_size"], shuffle=True, drop_last=True, num_workers=2
+        val_dataset, config["batch_size"], shuffle=True, drop_last=True, num_workers=0
     )
 
     # Visualize a random batch of data train samples & labels
-    show_data(train_dataset)
+    # show_data(train_dataset)
 
     return train_dataloader, val_dataloader
 
@@ -86,7 +88,6 @@ def train(
     train_dataloader,
     val_dataloader,
     epochs,
-    loss,
     optimizer,
     criterion,
     scheduler,
@@ -96,6 +97,8 @@ def train(
     early_stopping_precision,
     early_stopping_epochs,
 ):
+    print("Starting training...")
+    loss = {"train": [], "val": []}
     for epoch in range(epochs):
         epoch_train(
             train_dataloader,
@@ -103,6 +106,7 @@ def train(
             model,
             optimizer,
             criterion,
+            loss,
             config["batches_per_epoch"],
         )
         epoch_eval(
@@ -110,6 +114,7 @@ def train(
             config["device"],
             model,
             criterion,
+            loss,
             config["batches_per_epoch_val"],
         )
         print(
@@ -127,7 +132,10 @@ def train(
 
         # save model
         if (epoch + 1) % checkpoint_frequency == 0:
-            torch.save(model.state_dict(), "model_{}".format(str(epoch + 1).zfill(3)))
+            torch.save(
+                model.state_dict(),
+                "weights/ViT_model_{}".format(str(epoch + 1).zfill(3)),
+            )
 
         # stop early
         if epoch < early_stopping_avg:
@@ -148,8 +156,8 @@ def train(
             print("Stopping early")
             break
 
-    torch.save(model.state_dict(), "model_final")
-    return model
+    torch.save(model.state_dict(), "weights/ViT_model_final.pth")
+    return model, loss
 
 
 def main(args: argparse.Namespace) -> None:
@@ -160,7 +168,7 @@ def main(args: argparse.Namespace) -> None:
         train_dataloader, val_dataloader = get_split_data()
 
         # Instantiate model and etc.
-        ViT_model = ViT(out_channels=N_KEYPOINTS)
+        ViT_model = ViT(out_channels=N_KEYPOINTS, img_size=MODEL_IMG_SIZE)
         criterion = IoULoss()
         optimizer = optim.SGD(ViT_model.parameters(), lr=config["learning_rate"])
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(
@@ -172,11 +180,29 @@ def main(args: argparse.Namespace) -> None:
         )
 
         # Print model summary
-        summary(ViT_model, (3, 224, 224))
+        # summary(ViT_model, (3, 224, 224))
 
-        # TODO: train the model
+        # Train the model
+        _, loss = train(
+            train_dataloader,
+            val_dataloader,
+            config["epochs"],
+            optimizer,
+            criterion,
+            scheduler,
+            100,
+            ViT_model,
+            10,
+            5,
+            10,
+        )
 
-        # TODO: plot loss of training and validation sets
+        # Plot loss of training and validation sets
+        plt.plot(loss["train"], label="train")
+        plt.plot(loss["val"], label="val")
+        plt.legend()
+        plt.savefig("results/loss.png", bbox_inches="tight")
+        plt.show()
 
     if args.test:
         # TODO: evaluate model performance on test data

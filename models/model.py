@@ -9,7 +9,7 @@ class PatchEmbedding(nn.Module):
     def __init__(
         self,
         in_channels: int = 3,
-        patch_size: int = 16,
+        patch_size: int = 32,
         emb_size: int = 768,
         img_size: int = 224,
     ):
@@ -17,7 +17,9 @@ class PatchEmbedding(nn.Module):
         super().__init__()
         self.projection = nn.Sequential(
             # break down each image into patches and flatten
-            nn.Conv2d(in_channels, emb_size, kernel_size=patch_size, stride=patch_size),
+            nn.Conv2d(
+                in_channels, emb_size, kernel_size=patch_size, stride=patch_size,
+            ),
             Rearrange("b e (h) (w) -> b (h w) e"),  # pylint: disable=syntax-error
         )
         # class token
@@ -66,7 +68,7 @@ class MultiHeadAttention(nn.Module):
         if mask is not None:
             fill_value = torch.finfo(torch.float32).min
             energy.mask_fill(
-                ~mask, fill_value   # pylint: disable=invalid-unary-operand-type
+                ~mask, fill_value  # pylint: disable=invalid-unary-operand-type
             )
 
         scaling = self.emb_size ** (1 / 2)
@@ -200,7 +202,7 @@ class ViT(nn.Sequential):
     def __init__(
         self,
         in_channels: int = 3,
-        patch_size: int = 16,
+        patch_size: int = 32,
         emb_size: int = 768,
         img_size: int = 224,
         depth: int = 12,

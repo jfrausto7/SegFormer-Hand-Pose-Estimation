@@ -87,13 +87,19 @@ def show_data(dataset, n_samples=12):
     plt.show()
 
 
-def epoch_train(dataloader, device, model, optimizer, criterion, batches_per_epoch):
+def epoch_train(
+    dataloader, device, model, optimizer, criterion, loss_list, batches_per_epoch
+):
     model.train()
     running_loss = []
 
     for i, data in enumerate(dataloader, 0):
         inputs = data["image"].to(device)
         labels = data["heatmaps"].to(device)
+
+        # Reduce dimensionality of labels
+        labels = torch.mean(labels, -1)
+        labels = torch.mean(labels, -1)
 
         optimizer.zero_grad()
 
@@ -106,11 +112,11 @@ def epoch_train(dataloader, device, model, optimizer, criterion, batches_per_epo
 
         if i == batches_per_epoch:
             epoch_loss = np.mean(running_loss)
-            loss["train"].append(epoch_loss)
+            loss_list["train"].append(epoch_loss)
             break
 
 
-def epoch_eval(dataloader, device, model, criterion, batches_per_epoch_val):
+def epoch_eval(dataloader, device, model, criterion, loss_list, batches_per_epoch_val):
     model.eval()
     running_loss = []
 
@@ -119,6 +125,10 @@ def epoch_eval(dataloader, device, model, criterion, batches_per_epoch_val):
             inputs = data["image"].to(device)
             labels = data["heatmaps"].to(device)
 
+            # Reduce dimensionality of labels
+            labels = torch.mean(labels, -1)
+            labels = torch.mean(labels, -1)
+
             outputs = model(inputs)
             loss = criterion(outputs, labels)
 
@@ -126,5 +136,5 @@ def epoch_eval(dataloader, device, model, criterion, batches_per_epoch_val):
 
             if i == batches_per_epoch_val:
                 epoch_loss = np.mean(running_loss)
-                loss["val"].append(epoch_loss)
+                loss_list["val"].append(epoch_loss)
                 break
