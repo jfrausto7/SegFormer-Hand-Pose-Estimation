@@ -21,6 +21,7 @@ from utils.utils import (
 # TODO: adjust following config vals
 config = {
     "data_dir": "data/FreiHAND_pub_v2",
+    "model_path": "weights/ViT_model_final.pth",
     "epochs": 1000,
     "batch_size": 64,
     "batches_per_epoch": 50,
@@ -166,7 +167,7 @@ def train(
             print("Stopping early")
             break
 
-    torch.save(model.state_dict(), "weights/ViT_model_final.pth")
+    torch.save(model.state_dict(), config["model_path"])
     return model, loss
 
 
