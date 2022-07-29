@@ -138,3 +138,74 @@ def epoch_eval(dataloader, device, model, criterion, loss_list, batches_per_epoc
                 epoch_loss = np.mean(running_loss)
                 loss_list["val"].append(epoch_loss)
                 break
+
+
+def heatmaps_to_coordinates(heatmaps):
+    """
+    Heatmaps is a numpy array with size: (batch_size, n_keypoints, img_size, img_size)
+    """
+    batch_size = heatmaps.shape[0]
+    sums = heatmaps.sum(axis=-1).sum(axis=-1)
+    sums = np.expand_dims(sums, [2, 3])
+    normalized = heatmaps / sums
+    x_prob = normalized.sum(axis=2)
+    y_prob = normalized.sum(axis=3)
+
+    arr = np.tile(np.float32(np.arange(0, 128)), [batch_size, 21, 1])
+    x = (arr * x_prob).sum(axis=2)
+    y = (arr * y_prob).sum(axis=2)
+    keypoints = np.stack([x, y], axis=-1)
+    return keypoints / 128
+
+
+def show_batch_predictions(batch_data, model):
+    """
+    Visualizes image, image with actual keypoints and
+    image with predicted keypoints.
+    Finger colors are in COLORMAP.
+    Inputs:
+    - batch data is batch from dataloader
+    - model is trained model
+    """
+    inputs = batch_data["image"]
+    true_keypoints = batch_data["keypoints"].numpy()
+    batch_size = true_keypoints.shape[0]
+    pred_heatmaps = model(inputs)
+    pred_heatmaps = pred_heatmaps.detach().numpy()
+    pred_keypoints = heatmaps_to_coordinates(pred_heatmaps)
+    images = batch_data["image_raw"].numpy()
+    images = np.moveaxis(images, 1, -1)
+
+    plt.figure(figsize=[12, 4 * batch_size])
+    for i in range(batch_size):
+        image = images[i]
+        true_keypoints_img = true_keypoints[i] * RAW_IMG_SIZE
+        pred_keypoints_img = pred_keypoints[i] * RAW_IMG_SIZE
+
+        plt.subplot(batch_size, 3, i * 3 + 1)
+        plt.imshow(image)
+        plt.title("Image")
+        plt.axis("off")
+
+        plt.subplot(batch_size, 3, i * 3 + 2)
+        plt.imshow(image)
+        for finger, params in COLORMAP.items():
+            plt.plot(
+                true_keypoints_img[params["ids"], 0],
+                true_keypoints_img[params["ids"], 1],
+                params["color"],
+            )
+        plt.title("True Keypoints")
+        plt.axis("off")
+
+        plt.subplot(batch_size, 3, i * 3 + 3)
+        plt.imshow(image)
+        for finger, params in COLORMAP.items():
+            plt.plot(
+                pred_keypoints_img[params["ids"], 0],
+                pred_keypoints_img[params["ids"], 1],
+                params["color"],
+            )
+        plt.title("Pred Keypoints")
+        plt.axis("off")
+    plt.tight_layout()

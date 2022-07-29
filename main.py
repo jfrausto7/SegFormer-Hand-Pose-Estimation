@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 from torchsummary import summary  # type: ignore
 from models.model import IoULoss, ViT
 
@@ -13,8 +14,11 @@ from utils.utils import (
     MODEL_IMG_SIZE,
     N_IMG_CHANNELS,
     N_KEYPOINTS,
+    RAW_IMG_SIZE,
     epoch_eval,
     epoch_train,
+    heatmaps_to_coordinates,
+    show_batch_predictions,
     show_data,
 )
 
@@ -24,6 +28,7 @@ config = {
     "model_path": "weights/ViT_model_final.pth",
     "epochs": 1000,
     "batch_size": 64,
+    "test_batch_size": 4,
     "batches_per_epoch": 50,
     "batches_per_epoch_val": 20,
     "learning_rate": 0.01,
@@ -206,7 +211,7 @@ def main(args: argparse.Namespace) -> None:
             optimizer,
             criterion,
             scheduler,
-            100,
+            25,
             ViT_model,
             10,
             5,
@@ -221,8 +226,55 @@ def main(args: argparse.Namespace) -> None:
         plt.show()
 
     if args.test:
-        # TODO: evaluate model performance on test data
-        pass
+        test_dataset = FreiHAND(config=config, set_type="test")
+        test_dataloader = DataLoader(
+            test_dataset,
+            config["test_batch_size"],
+            shuffle=True,
+            drop_last=False,
+            num_workers=0,
+        )
+        print("Loading model...")
+        model = ViT(out_channels=N_KEYPOINTS, img_size=MODEL_IMG_SIZE)
+        model.load_state_dict(
+            torch.load(
+                config["model_path"], map_location=torch.device(config["device"])
+            )
+        )
+        model.eval()
+
+        # Determine accuracy
+        overall_acc = []
+
+        for data in tqdm(test_dataloader):
+            inputs = data["image"]
+            pred_heatpoints = model(inputs)
+            pred_heatpoints = pred_heatpoints.detach().numpy()
+            true_keypoints = data["keypoints"].numpy()
+            pred_keypoints = heatmaps_to_coordinates(pred_heatpoints)
+
+            accuracy_keypoint = ((true_keypoints - pred_keypoints) ** 2).sum(
+                axis=2
+            ) ** (1 / 2)
+            accuracy_image = accuracy_keypoint.mean(axis=1)
+            overall_acc.extend(list(accuracy_image))
+
+        error = np.mean(overall_acc) * 100
+        print("Average error per keypoint: {:.1f}%".format(error))
+
+        for img_size in [MODEL_IMG_SIZE, RAW_IMG_SIZE]:
+            error_pixels = error * img_size
+            size = f"{img_size}x{img_size}"
+            print(
+                "Average error per keypoint {:.0f} pixels for image {}".format(
+                    error_pixels, size
+                )
+            )
+
+        # visualize application on test data batch
+        for data in test_dataloader:
+            show_batch_predictions(data, model)
+            break
 
     if args.inference:
         # TODO: perform inference on test data
