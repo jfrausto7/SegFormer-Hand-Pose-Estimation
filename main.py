@@ -32,6 +32,7 @@ config = {
     "batches_per_epoch": 50,
     "batches_per_epoch_val": 20,
     "learning_rate": 0.01,
+    "num_workers": 2 if torch.cuda.is_available() else 0,
     "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
 }
 
@@ -88,13 +89,21 @@ def get_split_data():
     # Training dataset split
     train_dataset = FreiHAND(config=config, set_type="train")
     train_dataloader = DataLoader(
-        train_dataset, config["batch_size"], shuffle=True, drop_last=True, num_workers=0
+        train_dataset,
+        config["batch_size"],
+        shuffle=True,
+        drop_last=True,
+        num_workers=config["num_workers"],
     )
 
     # Validation dataset split
     val_dataset = FreiHAND(config=config, set_type="val")
     val_dataloader = DataLoader(
-        val_dataset, config["batch_size"], shuffle=True, drop_last=True, num_workers=0
+        val_dataset,
+        config["batch_size"],
+        shuffle=True,
+        drop_last=True,
+        num_workers=config["num_workers"],
     )
 
     return train_dataloader, val_dataloader
@@ -186,6 +195,7 @@ def main(args: argparse.Namespace) -> None:
     if args.train:
         # Retrieve data
         print("Loading data...")
+        print(config["num_workers"])
         train_dataloader, val_dataloader = get_split_data()
 
         # Instantiate model and etc.
@@ -232,7 +242,7 @@ def main(args: argparse.Namespace) -> None:
             config["test_batch_size"],
             shuffle=True,
             drop_last=False,
-            num_workers=0,
+            num_workers=config["num_workers"],
         )
         print("Loading model...")
         model = ViT(out_channels=N_KEYPOINTS, img_size=MODEL_IMG_SIZE)
