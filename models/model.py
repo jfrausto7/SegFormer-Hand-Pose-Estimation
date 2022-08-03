@@ -1,165 +1,267 @@
+from typing import List
 import torch
-import torch.nn.functional as F
-from torch import Tensor, nn
+from torchvision.ops import StochasticDepth
+from torch import nn
 from einops import rearrange, repeat
-from einops.layers.torch import Rearrange, Reduce
+from utils.utils import MODEL_IMG_SIZE, chunks
 
 
-class PatchEmbedding(nn.Module):
+class LayerNorm2d(nn.LayerNorm):
+    def forward(self, input):
+        overlap_size = MODEL_IMG_SIZE // input.shape[-1]
+        input = rearrange(input, "b c h w -> b h w c")
+        input = super().forward(input)
+        input = rearrange(input, "b h w c -> b c h w")
+        input = repeat(
+            input,
+            "b c h w -> b c (repeat1 h) (repeat2 w)",
+            repeat1=overlap_size,
+            repeat2=overlap_size,
+        )
+
+        return input
+
+
+class OverlapPatchMerging(nn.Sequential):
     def __init__(
-        self,
-        in_channels: int = 3,
-        patch_size: int = 32,
-        emb_size: int = 768,
-        img_size: int = 224,
+        self, in_channels: int, out_channels: int, patch_size: int, overlap_size: int
     ):
-        self.patch_size = patch_size
-        super().__init__()
-        self.projection = nn.Sequential(
-            # break down each image into patches and flatten
+        super().__init__(
             nn.Conv2d(
-                in_channels, emb_size, kernel_size=patch_size, stride=patch_size,
+                in_channels,
+                out_channels,
+                kernel_size=patch_size,
+                stride=overlap_size,  # TODO
+                padding=patch_size // 2,
+                bias=False,
             ),
-            Rearrange("b e (h) (w) -> b (h w) e"),  # pylint: disable=syntax-error
-        )
-        # class token
-        self.class_token = nn.Parameter(torch.randn(1, 1, emb_size))
-        # position embedding
-        self.positions = nn.Parameter(
-            torch.randn((img_size // patch_size) ** 2 + 1, emb_size)
+            LayerNorm2d(out_channels),
         )
 
-    def forward(self, x: Tensor):
-        b = x.shape[0]
-        x = self.projection(x)
-        # utilize class tokens and prepend to input
-        class_tokens = repeat(self.class_token, "() n e -> b n e", b=b)
-        x = torch.cat([class_tokens, x], dim=1)
-        # add position embedding
-        x += self.positions
-        return x
 
-
-class MultiHeadAttention(nn.Module):
+class EfficientMultiHeadAttention(nn.Module):
     """
-    Multi head attention proposed in `Attention Is All You Need`
+    Multi head attention proposed in `Attention Is All You Need`.
+    Modified to fit the needs of segmentation.
 
     Link to original paper: https://arxiv.org/abs/1706.03762
     """
 
-    def __init__(self, emb_size: int = 512, num_heads: int = 8, dropout: float = 0):
+    def __init__(self, channels: int, reduction_ratio: int = 1, num_heads: int = 8):
         super().__init__()
-        self.emb_size = emb_size
-        self.num_heads = num_heads
-        self.keys = nn.Linear(emb_size, emb_size)
-        self.queries = nn.Linear(emb_size, emb_size)
-        self.values = nn.Linear(emb_size, emb_size)
-        self.attention_drop = nn.Dropout(dropout)
-        self.projection = nn.Linear(emb_size, emb_size)
+        self.reducer = nn.Sequential(
+            nn.Conv2d(
+                channels, channels, kernel_size=reduction_ratio, stride=reduction_ratio
+            ),
+            LayerNorm2d(channels),
+        )
+        self.att = nn.MultiheadAttention(
+            channels, num_heads=num_heads, batch_first=True
+        )
 
-    def forward(self, x, mask=None):
-        # split keys, queries, and values in num_heads
-        keys = rearrange(self.keys(x), "b n (h d) -> b h n d", h=self.num_heads)
-        queries = rearrange(self.queries(x), "b n (h d) -> b h n d", h=self.num_heads)
-        values = rearrange(self.values(x), "b n (h d) -> b h n d", h=self.num_heads)
-
-        # sum up over the last axis
-        energy = torch.einsum("bhqd, bhkd -> bhqk", queries, keys)
-        if mask is not None:
-            fill_value = torch.finfo(torch.float32).min
-            energy.mask_fill(
-                ~mask, fill_value  # pylint: disable=invalid-unary-operand-type
-            )
-
-        scaling = self.emb_size ** (1 / 2)
-        attention = F.softmax(energy, dim=1) / scaling
-        attention = self.attention_drop(attention)
-
-        # dot product
-        out = torch.einsum("bhal, bhlv -> bhav ", attention, values)
-        out = rearrange(out, "b h n d -> b n (h d)")
-        out = self.projection(out)
+    def forward(self, x):
+        _, _, h, w = x.shape
+        reduced_x = self.reducer(x)
+        # attention needs tensor of shape (batch, sequence_length, channels)
+        reduced_x = rearrange(reduced_x, "b c h w -> b (h w) c")
+        x = rearrange(x, "b c h w -> b (h w) c")
+        out = self.att(x, reduced_x, reduced_x)[0]
+        # reshape it back to (batch, channels, height, width)
+        out = rearrange(out, "b (h w) c -> b c h w", h=h, w=w)
         return out
+
+
+class MixMLP(nn.Sequential):
+    def __init__(self, channels: int, expansion: int = 4):
+        super().__init__(
+            # dense layer
+            nn.Conv2d(channels, channels, kernel_size=1),
+            # depth wise conv
+            nn.Conv2d(
+                channels,
+                channels * expansion,
+                kernel_size=3,
+                groups=channels,
+                padding=1,
+            ),
+            nn.GELU(),
+            # dense layer
+            nn.Conv2d(channels * expansion, channels, kernel_size=1),
+        )
 
 
 class ResidualAdd(nn.Module):
     def __init__(self, fn):
         super().__init__()
-        self.fn = fn  # pylint: disable=invalid-name
+        self.fn = fn
 
     def forward(self, x, **kwargs):
-        res = x
-        x = self.fn(x, **kwargs)
-        x += res
+        out = self.fn(x, **kwargs)
+        x = x + out
         return x
 
 
-class FeedForwardBlock(nn.Sequential):
-    def __init__(self, emb_size: int, expansion: int = 4, drop_p: float = 0.0):
-        super().__init__(
-            nn.Linear(emb_size, emb_size * expansion),
-            nn.GELU(),
-            nn.Dropout(drop_p),
-            nn.Linear(emb_size * expansion, emb_size),
-        )
-
-
-class EncoderBlock(nn.Sequential):
+class SegFormerEncoderBlock(nn.Sequential):
     """
     Transformer Encoder block proposed in `Attention Is All You Need`.
+    Modified to fit the needs of segmentation.
 
     Link to original paper: https://arxiv.org/abs/1706.03762
     """
 
     def __init__(
         self,
-        emb_size: int = 768,
-        drop_p: float = 0.0,
-        forward_expansion: int = 4,
-        forward_drop_p: float = 0.0,
-        **kwargs,
+        channels: int,
+        reduction_ratio: int = 1,
+        num_heads: int = 8,
+        mlp_expansion: int = 4,
+        drop_path_prob: float = 0.0,
     ):
         super().__init__(
             ResidualAdd(
                 nn.Sequential(
-                    nn.LayerNorm(emb_size),
-                    MultiHeadAttention(emb_size=emb_size, **kwargs),
-                    nn.Dropout(drop_p),
+                    LayerNorm2d(channels),
+                    EfficientMultiHeadAttention(channels, reduction_ratio, num_heads),
                 )
             ),
             ResidualAdd(
                 nn.Sequential(
-                    nn.LayerNorm(emb_size),
-                    FeedForwardBlock(
-                        emb_size=emb_size,
-                        expansion=forward_expansion,
-                        drop_p=forward_drop_p,
-                    ),
-                    nn.Dropout(drop_p),
+                    LayerNorm2d(channels),
+                    MixMLP(channels, expansion=mlp_expansion),
+                    StochasticDepth(p=drop_path_prob, mode="batch"),
                 )
             ),
         )
 
 
-class TransformerEncoder(nn.Sequential):
+class SegFormerEncoderStage(nn.Sequential):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        patch_size: int,
+        overlap_size: int,
+        drop_probs: List[int],
+        depth: int = 2,
+        reduction_ratio: int = 1,
+        num_heads: int = 8,
+        mlp_expansion: int = 4,
+    ):
+        super().__init__()
+        self.overlap_patch_merge = OverlapPatchMerging(
+            in_channels, out_channels, patch_size, overlap_size,
+        )
+        self.blocks = nn.Sequential(
+            *[
+                SegFormerEncoderBlock(
+                    out_channels,
+                    reduction_ratio,
+                    num_heads,
+                    mlp_expansion,
+                    drop_probs[i],
+                )
+                for i in range(depth)
+            ]
+        )
+        self.norm = LayerNorm2d(out_channels)
+
+
+class SegFormerEncoder(nn.Module):
     """
-    Transformer Encoder proposed in `Attention Is All You Need`. The ViT architecture
-    only uses the Encoder, which is why the decoder is omitted.
+    Transformer Encoder proposed in `Attention Is All You Need`.
+    Modified to fit the needs of segmentation.
 
     Link to original paper: https://arxiv.org/abs/1706.03762
     """
 
-    def __init__(self, depth: int = 12, **kwargs):
-        super().__init__(*[EncoderBlock(**kwargs) for _ in range(depth)])
-
-
-class ClassificationHead(nn.Sequential):
-    def __init__(self, emb_size: int = 768, out_channels: int = 50):
-        super().__init__(
-            Reduce("b n e -> b e", reduction="mean"),
-            nn.LayerNorm(emb_size),
-            nn.Linear(emb_size, out_channels),
+    def __init__(
+        self,
+        in_channels: int,
+        widths: List[int],
+        depths: List[int],
+        all_num_heads: List[int],
+        patch_sizes: List[int],
+        overlap_sizes: List[int],
+        reduction_ratios: List[int],
+        mlp_expansions: List[int],
+        drop_prob: float = 0.0,
+    ):
+        super().__init__()
+        # create drop paths probabilities (one for each stage's block)
+        drop_probs = [x.item() for x in torch.linspace(0, drop_prob, sum(depths))]
+        self.stages = nn.ModuleList(
+            [
+                SegFormerEncoderStage(*args)
+                for args in zip(
+                    [in_channels, *widths],
+                    widths,
+                    patch_sizes,
+                    overlap_sizes,
+                    chunks(drop_probs, sizes=depths),
+                    depths,
+                    reduction_ratios,
+                    all_num_heads,
+                    mlp_expansions,
+                )
+            ]
         )
+
+    def forward(self, x):
+        features = []
+        for stage in self.stages:
+            x = stage(x)
+            features.append(x)
+        return features
+
+
+class SegFormerDecoderBlock(nn.Sequential):
+    def __init__(self, in_channels: int, out_channels: int, scale_factor: int = 2):
+        super().__init__(
+            nn.UpsamplingBilinear2d(scale_factor=scale_factor),
+            nn.Conv2d(in_channels, out_channels, kernel_size=1),
+        )
+
+
+class SegFormerDecoder(nn.Module):
+    """
+    Transformer Decoder proposed in `Attention Is All You Need`.
+    Modified to fit the needs of segmentation.
+
+    Link to original paper: https://arxiv.org/abs/1706.03762
+    """
+
+    def __init__(self, out_channels: int, widths: List[int], scale_factors: List[int]):
+        super().__init__()
+        self.stages = nn.ModuleList(
+            [
+                SegFormerDecoderBlock(in_channels, out_channels, scale_factor)
+                for in_channels, scale_factor in zip(widths, scale_factors)
+            ]
+        )
+
+    def forward(self, features):
+        new_features = []
+        for feature, stage in zip(features, self.stages):
+            x = stage(feature)
+            new_features.append(x)
+        return new_features
+
+
+class SegFormerSegmentationHead(nn.Module):
+    def __init__(self, channels: int, num_classes: int, num_features: int = 4):
+        super().__init__()
+        self.fuse = nn.Sequential(
+            nn.Conv2d(channels * num_features, channels, kernel_size=1, bias=False),
+            nn.ReLU(),  # why relu? Who knows
+            nn.BatchNorm2d(channels),  # why batchnorm and not layer norm? Idk
+        )
+        self.predict = nn.Conv2d(channels, num_classes, kernel_size=1)
+
+    def forward(self, features):
+        x = torch.cat(features, dim=1)
+        x = self.fuse(x)
+        x = self.predict(x)
+        return x
 
 
 class IoULoss(nn.Module):
@@ -188,29 +290,51 @@ class IoULoss(nn.Module):
         return 1 - iou
 
 
-class ViT(nn.Sequential):
+class SegFormer(nn.Module):
     """
-    Implementation of Vision Transformer (ViT) proposed in
-    `An Image Is Worth 16x16 Words: Transformers For Image Recognition At Scale`.
+    Implementation of SegFormer proposed in
+    `SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers`.
 
     This model architecture is repurposed/redesigned here for the purpose of 2D
     Hand Pose Estimation.
 
-    Link to original paper: https://arxiv.org/pdf/2010.11929.pdf_
+    Link to original paper: https://arxiv.org/abs/2105.15203
     """
 
     def __init__(
         self,
-        in_channels: int = 3,
-        patch_size: int = 32,
-        emb_size: int = 768,
-        img_size: int = 224,
-        depth: int = 12,
-        out_channels: int = 50,
-        **kwargs,
+        in_channels: int,
+        widths: List[int],
+        depths: List[int],
+        all_num_heads: List[int],
+        patch_sizes: List[int],
+        overlap_sizes: List[int],
+        reduction_ratios: List[int],
+        mlp_expansions: List[int],
+        decoder_channels: int,
+        scale_factors: List[int],
+        num_classes: int,
+        drop_prob: float = 0.0,
     ):
-        super().__init__(
-            PatchEmbedding(in_channels, patch_size, emb_size, img_size),
-            TransformerEncoder(depth, **kwargs),
-            ClassificationHead(emb_size, out_channels),
+        super().__init__()
+        self.encoder = SegFormerEncoder(
+            in_channels,
+            widths,
+            depths,
+            all_num_heads,
+            patch_sizes,
+            overlap_sizes,
+            reduction_ratios,
+            mlp_expansions,
+            drop_prob,
         )
+        self.decoder = SegFormerDecoder(decoder_channels, widths[::-1], scale_factors)
+        self.head = SegFormerSegmentationHead(
+            decoder_channels, num_classes, num_features=len(widths)
+        )
+
+    def forward(self, x):
+        features = self.encoder(x)
+        features = self.decoder(features[::-1])
+        segmentation = self.head(features)
+        return segmentation

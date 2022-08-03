@@ -10,7 +10,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from torchsummary import summary  # type: ignore
-from models.model import IoULoss, ViT
+from models.model import IoULoss, SegFormer
 
 from utils.dataset import FreiHAND
 from utils.utils import (
@@ -205,9 +205,22 @@ def main(args: argparse.Namespace) -> None:
         train_dataloader, val_dataloader = get_split_data()
 
         # Instantiate model and etc.
-        ViT_model = ViT(out_channels=N_KEYPOINTS, img_size=MODEL_IMG_SIZE)
+        # ViT_model = ViT(out_channels=N_KEYPOINTS, img_size=MODEL_IMG_SIZE)
+        segformer = SegFormer(
+            in_channels=N_IMG_CHANNELS,
+            widths=[64, 128, 256, 512],
+            depths=[3, 4, 6, 3],
+            all_num_heads=[1, 2, 4, 8],
+            patch_sizes=[7, 3, 3, 3],
+            overlap_sizes=[4, 2, 2, 2],
+            reduction_ratios=[8, 4, 2, 1],
+            mlp_expansions=[4, 4, 4, 4],
+            decoder_channels=256,
+            scale_factors=[8, 4, 2, 1],
+            num_classes=N_KEYPOINTS,
+        )
         criterion = IoULoss()
-        optimizer = optim.SGD(ViT_model.parameters(), lr=config["learning_rate"])
+        optimizer = optim.SGD(segformer.parameters(), lr=config["learning_rate"])
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(
             optimizer=optimizer,
             factor=0.5,
@@ -217,7 +230,7 @@ def main(args: argparse.Namespace) -> None:
         )
 
         # Print model summary
-        summary(ViT_model, (N_IMG_CHANNELS, MODEL_IMG_SIZE, MODEL_IMG_SIZE))
+        summary(segformer, (N_IMG_CHANNELS, MODEL_IMG_SIZE, MODEL_IMG_SIZE))
 
         # Train the model
         _, loss = train(
@@ -228,7 +241,7 @@ def main(args: argparse.Namespace) -> None:
             criterion,
             scheduler,
             25,
-            ViT_model,
+            segformer,
             10,
             5,
             10,
@@ -251,7 +264,19 @@ def main(args: argparse.Namespace) -> None:
             num_workers=config["num_workers"],
         )
         print("Loading model...")
-        model = ViT(out_channels=N_KEYPOINTS, img_size=MODEL_IMG_SIZE)
+        model = SegFormer(
+            in_channels=N_IMG_CHANNELS,
+            widths=[64, 128, 256, 512],
+            depths=[3, 4, 6, 3],
+            all_num_heads=[1, 2, 4, 8],
+            patch_sizes=[7, 3, 3, 3],
+            overlap_sizes=[4, 2, 2, 2],
+            reduction_ratios=[8, 4, 2, 1],
+            mlp_expansions=[4, 4, 4, 4],
+            decoder_channels=256,
+            scale_factors=[8, 4, 2, 1],
+            num_classes=N_KEYPOINTS,
+        )
         model.load_state_dict(
             torch.load(
                 config["model_path"], map_location=torch.device(config["device"])
@@ -294,7 +319,19 @@ def main(args: argparse.Namespace) -> None:
 
     if args.inference:
         print("Loading model...")
-        model = ViT(out_channels=N_KEYPOINTS, img_size=MODEL_IMG_SIZE)
+        model = SegFormer(
+            in_channels=N_IMG_CHANNELS,
+            widths=[64, 128, 256, 512],
+            depths=[3, 4, 6, 3],
+            all_num_heads=[1, 2, 4, 8],
+            patch_sizes=[7, 3, 3, 3],
+            overlap_sizes=[4, 2, 2, 2],
+            reduction_ratios=[8, 4, 2, 1],
+            mlp_expansions=[4, 4, 4, 4],
+            decoder_channels=256,
+            scale_factors=[8, 4, 2, 1],
+            num_classes=N_KEYPOINTS,
+        )
         model.load_state_dict(
             torch.load(
                 config["model_path"], map_location=torch.device(config["device"])

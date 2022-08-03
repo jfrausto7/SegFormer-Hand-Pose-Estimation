@@ -1,3 +1,4 @@
+from typing import Iterable, List
 from cv2 import GaussianBlur
 from matplotlib import pyplot as plt
 import numpy as np
@@ -8,6 +9,7 @@ N_KEYPOINTS = 21
 N_IMG_CHANNELS = 3
 RAW_IMG_SIZE = 224
 MODEL_IMG_SIZE = 128
+MODEL_NEURONS = 16
 DATASET_MEANS = [0.3950, 0.4323, 0.2954]
 DATASET_STDS = [0.1966, 0.1734, 0.1836]
 COLORMAP = {
@@ -97,14 +99,9 @@ def epoch_train(
         inputs = data["image"].to(device)
         labels = data["heatmaps"].to(device)
 
-        # TODO: REMOVE BELOW TWO LINE ONCE OUTPUTS FROM MODEL ARE FIXED
-        # Reduce dimensionality of labels
-        labels = torch.mean(labels, -1)
-        labels = torch.mean(labels, -1)
-
         optimizer.zero_grad()
 
-        outputs = model(inputs)
+        outputs = model(inputs)  # check shape
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
@@ -210,3 +207,14 @@ def show_batch_predictions(batch_data, model):
         plt.title("Pred Keypoints")
         plt.axis("off")
     plt.tight_layout()
+
+
+def chunks(data: Iterable, sizes: List[int]):
+    """
+    Given an iterable, returns slices using sizes as indices
+    """
+    curr = 0
+    for size in sizes:
+        chunk = data[curr : curr + size]
+        curr += size
+        yield chunk
