@@ -97,6 +97,7 @@ def epoch_train(
         inputs = data["image"].to(device)
         labels = data["heatmaps"].to(device)
 
+        # TODO: REMOVE BELOW TWO LINE ONCE OUTPUTS FROM MODEL ARE FIXED
         # Reduce dimensionality of labels
         labels = torch.mean(labels, -1)
         labels = torch.mean(labels, -1)
