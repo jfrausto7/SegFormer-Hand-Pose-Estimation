@@ -1,9 +1,12 @@
 import argparse
+import os
 from matplotlib import pyplot as plt
+from PIL import Image
 import numpy as np
 
 import torch
 import torch.optim as optim
+from torchvision import transforms
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from torchsummary import summary  # type: ignore
@@ -11,6 +14,9 @@ from models.model import IoULoss, ViT
 
 from utils.dataset import FreiHAND
 from utils.utils import (
+    COLORMAP,
+    DATASET_MEANS,
+    DATASET_STDS,
     MODEL_IMG_SIZE,
     N_IMG_CHANNELS,
     N_KEYPOINTS,
@@ -25,6 +31,7 @@ from utils.utils import (
 # TODO: adjust following config vals
 config = {
     "data_dir": "data/FreiHAND_pub_v2",
+    "inference_dir": "inference",
     "model_path": "weights/ViT_model_final.pth",
     "epochs": 1000,
     "batch_size": 64,
@@ -195,7 +202,6 @@ def main(args: argparse.Namespace) -> None:
     if args.train:
         # Retrieve data
         print("Loading data...")
-        print(config["num_workers"])
         train_dataloader, val_dataloader = get_split_data()
 
         # Instantiate model and etc.
@@ -258,10 +264,10 @@ def main(args: argparse.Namespace) -> None:
 
         for data in tqdm(test_dataloader):
             inputs = data["image"]
-            pred_heatpoints = model(inputs)
-            pred_heatpoints = pred_heatpoints.detach().numpy()
+            pred_heatmaps = model(inputs)
+            pred_heatmaps = pred_heatmaps.detach().numpy()
             true_keypoints = data["keypoints"].numpy()
-            pred_keypoints = heatmaps_to_coordinates(pred_heatpoints)
+            pred_keypoints = heatmaps_to_coordinates(pred_heatmaps)
 
             accuracy_keypoint = ((true_keypoints - pred_keypoints) ** 2).sum(
                 axis=2
@@ -287,8 +293,55 @@ def main(args: argparse.Namespace) -> None:
             break
 
     if args.inference:
-        # TODO: perform inference on test data
-        pass
+        print("Loading model...")
+        model = ViT(out_channels=N_KEYPOINTS, img_size=MODEL_IMG_SIZE)
+        model.load_state_dict(
+            torch.load(
+                config["model_path"], map_location=torch.device(config["device"])
+            )
+        )
+        model.eval()
+
+        # Apply transformations to raw data
+        image_transformed = transforms.Compose(
+            [
+                transforms.Resize(MODEL_IMG_SIZE),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=DATASET_MEANS, std=DATASET_STDS),
+            ]
+        )
+
+        # Iterate through the names of contents of the folder
+        for image_path in os.listdir(config["inference_dir"]):
+
+            # create the full input path and read the file
+            input_path = os.path.join(config["inference_dir"], image_path)
+            raw = Image.open(input_path)
+
+            image = image_transformed(raw)
+
+            pred_heatmaps = model(image)
+            pred_heatmaps = pred_heatmaps.detach().numpy()
+            pred_keypoints = heatmaps_to_coordinates(pred_heatmaps)
+
+            pred_keypoints_img = pred_keypoints * RAW_IMG_SIZE
+            plt.figure(figsize=[9, 4])
+            plt.subplot(1, 3, 4)
+            plt.imshow(image)
+            plt.title("Image")
+            plt.axis("off")
+
+            plt.subplot(1, 3, 5)
+            plt.imshow(image)
+            for finger, params in COLORMAP.items():
+                plt.plot(
+                    pred_keypoints_img[params["ids"], 0],
+                    pred_keypoints_img[params["ids"], 1],
+                    params["color"],
+                )
+            plt.title("Pred Keypoints")
+            plt.axis("off")
+        plt.tight_layout()
 
 
 if __name__ == "__main__":
