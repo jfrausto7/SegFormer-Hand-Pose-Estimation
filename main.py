@@ -10,6 +10,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from torchsummary import summary  # type: ignore
+from torchviz import make_dot   # type: ignore3
 from models.model import IoULoss, SegFormer
 
 from utils.dataset import FreiHAND
@@ -28,12 +29,11 @@ from utils.utils import (
     show_data,
 )
 
-# TODO: adjust following config vals
 config = {
     "data_dir": "data/FreiHAND_pub_v2",
     "inference_dir": "inference",
     "model_path": "weights/ViT_model_final.pth",
-    "epochs": 1000,
+    "epochs": 500,
     "batch_size": 64,
     "test_batch_size": 4,
     "batches_per_epoch": 50,
@@ -61,6 +61,10 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--summary", help="Summary", action="store_true", dest="summary"
+    )
+
+    parser.add_argument(
         "--weights",
         default="",
         help="Path for the weights to use in training/testing",
@@ -69,7 +73,7 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--epochs",
-        default=10,
+        default=config["epochs"],
         type=int,
         help="Number of training epochs",
         dest="epochs",
@@ -205,10 +209,9 @@ def main(args: argparse.Namespace) -> None:
         train_dataloader, val_dataloader = get_split_data()
 
         # Instantiate model and etc.
-        # ViT_model = ViT(out_channels=N_KEYPOINTS, img_size=MODEL_IMG_SIZE)
         segformer = SegFormer(
             in_channels=N_IMG_CHANNELS,
-            widths=[64, 128, 256, 512],
+            widths=[32, 64, 128, 256],
             depths=[3, 4, 6, 3],
             all_num_heads=[1, 2, 4, 8],
             patch_sizes=[7, 3, 3, 3],
@@ -229,14 +232,11 @@ def main(args: argparse.Namespace) -> None:
             threshold=0.00001,
         )
 
-        # Print model summary
-        summary(segformer, (N_IMG_CHANNELS, MODEL_IMG_SIZE, MODEL_IMG_SIZE))
-
         # Train the model
         _, loss = train(
             train_dataloader,
             val_dataloader,
-            config["epochs"],
+            args.epochs,
             optimizer,
             criterion,
             scheduler,
@@ -266,7 +266,7 @@ def main(args: argparse.Namespace) -> None:
         print("Loading model...")
         model = SegFormer(
             in_channels=N_IMG_CHANNELS,
-            widths=[64, 128, 256, 512],
+            widths=[32, 64, 128, 256],
             depths=[3, 4, 6, 3],
             all_num_heads=[1, 2, 4, 8],
             patch_sizes=[7, 3, 3, 3],
@@ -321,7 +321,7 @@ def main(args: argparse.Namespace) -> None:
         print("Loading model...")
         model = SegFormer(
             in_channels=N_IMG_CHANNELS,
-            widths=[64, 128, 256, 512],
+            widths=[32, 64, 128, 256],
             depths=[3, 4, 6, 3],
             all_num_heads=[1, 2, 4, 8],
             patch_sizes=[7, 3, 3, 3],
@@ -379,6 +379,29 @@ def main(args: argparse.Namespace) -> None:
             plt.title("Pred Keypoints")
             plt.axis("off")
         plt.tight_layout()
+    
+    if args.summary:
+        # Print model summary
+        summary(segformer, (N_IMG_CHANNELS, MODEL_IMG_SIZE, MODEL_IMG_SIZE))
+
+    if args.viz:
+        # visualize model
+        plot_model(bezierModel.model, to_file="architecture.png", show_shapes=True, show_layer_names=True, expand_nested=True)
+        model = SegFormer(
+            in_channels=N_IMG_CHANNELS,
+            widths=[32, 64, 128, 256],
+            depths=[3, 4, 6, 3],
+            all_num_heads=[1, 2, 4, 8],
+            patch_sizes=[7, 3, 3, 3],
+            overlap_sizes=[4, 2, 2, 2],
+            reduction_ratios=[8, 4, 2, 1],
+            mlp_expansions=[4, 4, 4, 4],
+            decoder_channels=256,
+            scale_factors=[8, 4, 2, 1],
+            num_classes=N_KEYPOINTS,
+        )
+        yhat = model(torch.randn(N_KEYPOINTS, MODEL_IMG_SIZE, MODEL_IMG_SIZE))
+        make_dot(yhat, params=dict(list(model.named_parameters()))).render("results/SegFormer_torchviz", format="png")
 
 
 if __name__ == "__main__":

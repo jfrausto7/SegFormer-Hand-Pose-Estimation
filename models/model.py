@@ -31,7 +31,7 @@ class OverlapPatchMerging(nn.Sequential):
                 in_channels,
                 out_channels,
                 kernel_size=patch_size,
-                stride=overlap_size,  # TODO
+                stride=overlap_size,
                 padding=patch_size // 2,
                 bias=False,
             ),
