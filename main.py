@@ -386,7 +386,6 @@ def main(args: argparse.Namespace) -> None:
 
     if args.viz:
         # visualize model
-        plot_model(bezierModel.model, to_file="architecture.png", show_shapes=True, show_layer_names=True, expand_nested=True)
         model = SegFormer(
             in_channels=N_IMG_CHANNELS,
             widths=[32, 64, 128, 256],
