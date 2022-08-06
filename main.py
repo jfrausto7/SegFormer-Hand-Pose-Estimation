@@ -413,7 +413,7 @@ def main(args: argparse.Namespace) -> None:
             scale_factors=[8, 4, 2, 1],
             num_classes=N_KEYPOINTS,
         )
-        yhat = model(torch.randn(N_KEYPOINTS, MODEL_IMG_SIZE, MODEL_IMG_SIZE))
+        yhat = model(torch.randn(config["batch_size"], N_IMG_CHANNELS, MODEL_IMG_SIZE, MODEL_IMG_SIZE))
         make_dot(yhat, params=dict(list(model.named_parameters()))).render("results/SegFormer_torchviz", format="png")
 
 
