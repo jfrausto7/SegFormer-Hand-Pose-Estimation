@@ -34,6 +34,7 @@ config = {
     "inference_dir": "inference",
     "model_path": "weights/ViT_model_final.pth",
     "epochs": 500,
+    "checkpoint_frequency": 25
     "batch_size": 64,
     "test_batch_size": 4,
     "batches_per_epoch": 50,
@@ -240,7 +241,7 @@ def main(args: argparse.Namespace) -> None:
             optimizer,
             criterion,
             scheduler,
-            25,
+            config["checkpoint_frequency"],
             segformer,
             10,
             5,
