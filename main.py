@@ -382,6 +382,19 @@ def main(args: argparse.Namespace) -> None:
         plt.tight_layout()
     
     if args.summary:
+        model = SegFormer(
+            in_channels=N_IMG_CHANNELS,
+            widths=[32, 64, 128, 256],
+            depths=[3, 4, 6, 3],
+            all_num_heads=[1, 2, 4, 8],
+            patch_sizes=[7, 3, 3, 3],
+            overlap_sizes=[4, 2, 2, 2],
+            reduction_ratios=[8, 4, 2, 1],
+            mlp_expansions=[4, 4, 4, 4],
+            decoder_channels=256,
+            scale_factors=[8, 4, 2, 1],
+            num_classes=N_KEYPOINTS,
+        )
         # Print model summary
         summary(segformer, (N_IMG_CHANNELS, MODEL_IMG_SIZE, MODEL_IMG_SIZE))
 
