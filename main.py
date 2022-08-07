@@ -220,7 +220,7 @@ def main(args: argparse.Namespace) -> None:
             reduction_ratios=[4, 2, 1, 1],
             mlp_expansions=[4, 4, 4, 4],
             decoder_channels=256,
-            scale_factors=[8, 4, 2, 1],
+            scale_factors=[4, 2, 1, 1],
             num_classes=N_KEYPOINTS,
         )
         print("Created SegFormer model!")
