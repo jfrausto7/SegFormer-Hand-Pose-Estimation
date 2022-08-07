@@ -34,12 +34,12 @@ config = {
     "inference_dir": "inference",
     "model_path": "weights/ViT_model_final.pth",
     "epochs": 500,
-    "checkpoint_frequency": 25,
+    "checkpoint_frequency": 2,
     "batch_size": 64,
     "test_batch_size": 4,
     "batches_per_epoch": 25,
     "batches_per_epoch_val": 10,
-    "learning_rate": 0.01,
+    "learning_rate": 0.1,
     "num_workers": 2 if torch.cuda.is_available() else 0,
     "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
 }
@@ -78,6 +78,14 @@ def parse_args() -> argparse.Namespace:
         type=int,
         help="Number of training epochs",
         dest="epochs",
+    )
+
+    parser.add_argument(
+        "--previous",
+        default=1,
+        type=int,
+        help="Previous epoch checkpoint",
+        dest="previous",
     )
 
     parser.add_argument(
@@ -136,7 +144,7 @@ def train(
 ):
     print("Starting training...")
     loss = {"train": [], "val": []}
-    for epoch in range(epochs):
+    for epoch in range(args.previous, epochs):
         epoch_train(
             train_dataloader,
             config["device"],
@@ -173,6 +181,7 @@ def train(
                 model.state_dict(),
                 "weights/ViT_model_{}".format(str(epoch + 1).zfill(3)),
             )
+            print("Saved model at checkpoint!")
 
         # stop early
         if epoch < early_stopping_avg:
@@ -223,7 +232,16 @@ def main(args: argparse.Namespace) -> None:
             scale_factors=[8, 4, 2, 1],
             num_classes=N_KEYPOINTS,
         )
-        print("Created SegFormer model!")
+        if args.previous != 0:
+            model.load_state_dict(
+                torch.load(
+                    config["model_path"], map_location=torch.device(config["device"])
+                )
+            )
+            model.eval()
+            print("Loaded model!")
+        else:
+            print("Created new SegFormer model!")
         criterion = IoULoss()
         optimizer = optim.SGD(segformer.parameters(), lr=config["learning_rate"])
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(
@@ -292,6 +310,7 @@ def main(args: argparse.Namespace) -> None:
         for data in tqdm(test_dataloader):
             inputs = data["image"]
             pred_heatmaps = model(inputs)
+            pred_heatmaps = pred_heatmaps.repeat(1,1,4,4)   # repeat to match shape
             pred_heatmaps = pred_heatmaps.detach().numpy()
             true_keypoints = data["keypoints"].numpy()
             pred_keypoints = heatmaps_to_coordinates(pred_heatmaps)
@@ -360,6 +379,7 @@ def main(args: argparse.Namespace) -> None:
             image = image_transformed(raw)
 
             pred_heatmaps = model(image)
+            pred_heatmaps = pred_heatmaps.repeat(1,1,4,4)   # repeat to match shape
             pred_heatmaps = pred_heatmaps.detach().numpy()
             pred_keypoints = heatmaps_to_coordinates(pred_heatmaps)
 

@@ -113,8 +113,6 @@ def epoch_train(
             epoch_loss = np.mean(running_loss)
             loss_list["train"].append(epoch_loss)
             break
-    print("reached!")
-
 
 def epoch_eval(dataloader, device, model, criterion, loss_list, batches_per_epoch_val):
     model.eval()
@@ -168,6 +166,7 @@ def show_batch_predictions(batch_data, model):
     true_keypoints = batch_data["keypoints"].numpy()
     batch_size = true_keypoints.shape[0]
     pred_heatmaps = model(inputs)
+    outputs = outputs.repeat(1,1,4,4)   # repeat to match shape
     pred_heatmaps = pred_heatmaps.detach().numpy()
     pred_keypoints = heatmaps_to_coordinates(pred_heatmaps)
     images = batch_data["image_raw"].numpy()
