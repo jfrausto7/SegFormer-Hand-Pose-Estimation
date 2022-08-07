@@ -19,6 +19,7 @@ class LayerNorm2d(nn.LayerNorm):
             repeat1=overlap_size,
             repeat2=overlap_size,
         )
+        print(input.shape)
         return input
 
 
