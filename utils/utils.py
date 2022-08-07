@@ -96,9 +96,7 @@ def epoch_train(
     running_loss = []
 
     for i, data in enumerate(dataloader, 0):
-        print(i)
-
-    for i, data in enumerate(dataloader, 0):
+        print(data.shape)
         inputs = data["image"].to(device)
         labels = data["heatmaps"].to(device)
 
