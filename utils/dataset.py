@@ -66,8 +66,7 @@ class FreiHAND(Dataset):
         )
     
     def __len__(self):
-        print(len(self.annotation_3d))
-        return len(self.annotation_3d)
+        return 104000   # hardcoded len(self.annotation_3d)
 
     def __getitem__(self, index):
         # Pull data from index
