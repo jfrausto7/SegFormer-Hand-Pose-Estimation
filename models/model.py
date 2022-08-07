@@ -8,7 +8,6 @@ from utils.utils import MODEL_IMG_SIZE, chunks
 
 class LayerNorm2d(nn.LayerNorm):
     def forward(self, input):
-        print(input.shape)
         overlap_size = MODEL_IMG_SIZE // input.shape[-1]
         input = rearrange(input, "b c h w -> b h w c")
         input = super().forward(input)
@@ -19,7 +18,6 @@ class LayerNorm2d(nn.LayerNorm):
         #     repeat1=overlap_size,
         #     repeat2=overlap_size,
         # )
-        print(input.shape)
         return input
 
 
