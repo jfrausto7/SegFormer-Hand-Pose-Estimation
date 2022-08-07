@@ -96,7 +96,6 @@ def epoch_train(
     running_loss = []
 
     for i, data in enumerate(dataloader, 0):
-        print(data.shape)
         inputs = data["image"].to(device)
         labels = data["heatmaps"].to(device)
 
@@ -114,6 +113,7 @@ def epoch_train(
             epoch_loss = np.mean(running_loss)
             loss_list["train"].append(epoch_loss)
             break
+    print("reached!")
 
 
 def epoch_eval(dataloader, device, model, criterion, loss_list, batches_per_epoch_val):
