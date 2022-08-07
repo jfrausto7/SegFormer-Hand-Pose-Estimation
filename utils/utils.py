@@ -103,7 +103,7 @@ def epoch_train(
 
         outputs = model(inputs)  # check shape
         print(outputs.shape)
-        outputs.repeat(1,1,4,4)
+        outputs = outputs.repeat(1,1,4,4)
         print(outputs.shape)
         loss = criterion(outputs, labels)
         loss.backward()
