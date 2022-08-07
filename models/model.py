@@ -12,12 +12,6 @@ class LayerNorm2d(nn.LayerNorm):
         input = rearrange(input, "b c h w -> b h w c")
         input = super().forward(input)
         input = rearrange(input, "b h w c -> b c h w")
-        # input = repeat(
-        #     input,
-        #     "b c h w -> b c (repeat1 h) (repeat2 w)",
-        #     repeat1=overlap_size,
-        #     repeat2=overlap_size,
-        # )
         return input
 
 

@@ -96,15 +96,16 @@ def epoch_train(
     running_loss = []
 
     for i, data in enumerate(dataloader, 0):
+        print(i)
+
+    for i, data in enumerate(dataloader, 0):
         inputs = data["image"].to(device)
         labels = data["heatmaps"].to(device)
 
         optimizer.zero_grad()
 
-        outputs = model(inputs)  # check shape
-        print(outputs.shape)
-        outputs = outputs.repeat(1,1,4,4)
-        print(outputs.shape)
+        outputs = model(inputs) 
+        outputs = outputs.repeat(1,1,4,4)   # repeat to match shape
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
@@ -126,11 +127,8 @@ def epoch_eval(dataloader, device, model, criterion, loss_list, batches_per_epoc
             inputs = data["image"].to(device)
             labels = data["heatmaps"].to(device)
 
-            # Reduce dimensionality of labels
-            labels = torch.mean(labels, -1)
-            labels = torch.mean(labels, -1)
-
             outputs = model(inputs)
+            outputs = outputs.repeat(1,1,4,4)   # repeat to match shape
             loss = criterion(outputs, labels)
 
             running_loss.append(loss.item())
