@@ -102,6 +102,8 @@ def epoch_train(
         optimizer.zero_grad()
 
         outputs = model(inputs)  # check shape
+        print(outputs.shape)
+        outputs.repeat(1,1,4,4)
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
