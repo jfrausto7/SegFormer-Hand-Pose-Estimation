@@ -27,10 +27,11 @@ class FreiHAND(Dataset):
     def __init__(self, config, set_type="train"):
         # Define class attributes.
         self.device = config["device"]
+        self.config = config
         self.data_dir = os.path.join(config["data_dir"], "training/rgb")
         self.data_names = np.sort(os.listdir(self.data_dir))
 
-        # Open data files.
+        # Open data files
         fn_k_matrix = os.path.join(config["data_dir"], "training_K.json")
         with open(fn_k_matrix, "r") as file:
             self.k_matrix = np.tile(np.array(json.load(file)), (4, 1, 1))
@@ -70,6 +71,24 @@ class FreiHAND(Dataset):
 
     def __getitem__(self, index):
         # Pull data from index
+        print(len(self.data_names))
+        print(len(self.k_matrix))
+        print(len(self.annotation_3d))
+
+        self.data_names = np.sort(os.listdir(self.data_dir))
+
+        # Open data files
+        fn_k_matrix = os.path.join(self.config["data_dir"], "training_K.json")
+        with open(fn_k_matrix, "r") as file:
+            self.k_matrix = np.tile(np.array(json.load(file)), (4, 1, 1))
+
+        fn_annotation_3d = os.path.join(self.config["data_dir"], "training_xyz.json")
+        with open(fn_annotation_3d, "r") as file:
+            self.annotation_3d = np.tile(np.array(json.load(file)), (4, 1, 1))
+
+
+
+
         image_name = self.data_names[index]
         raw = Image.open(os.path.join(self.data_dir, image_name))
         image_raw = self.image_raw_transformed(raw)
