@@ -212,11 +212,11 @@ def main(args: argparse.Namespace) -> None:
         # Instantiate model and etc.
         segformer = SegFormer(
             in_channels=N_IMG_CHANNELS,
-            widths=[32, 64, 128, 256],
-            depths=[3, 4, 6, 3],
+            widths=[16, 32, 64, 128],
+            depths=[2, 4, 6, 3],
             all_num_heads=[1, 2, 4, 8],
-            patch_sizes=[7, 3, 3, 3],
-            overlap_sizes=[4, 2, 2, 2],
+            patch_sizes=[3, 3, 3, 3],
+            overlap_sizes=[1, 1, 1, 1],
             reduction_ratios=[8, 4, 2, 1],
             mlp_expansions=[4, 4, 4, 4],
             decoder_channels=256,
