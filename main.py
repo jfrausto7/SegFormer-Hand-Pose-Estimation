@@ -30,7 +30,7 @@ from utils.utils import (
 )
 
 config = {
-    "data_dir": "data/FreiHAND_pub_v2",
+    "data_dir": "./data/FreiHAND_pub_v2",
     "inference_dir": "inference",
     "model_path": "weights/ViT_model_final.pth",
     "epochs": 500,
@@ -223,6 +223,7 @@ def main(args: argparse.Namespace) -> None:
             scale_factors=[8, 4, 2, 1],
             num_classes=N_KEYPOINTS,
         )
+        print("Created SegFormer model!")
         criterion = IoULoss()
         optimizer = optim.SGD(segformer.parameters(), lr=config["learning_rate"])
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(
@@ -232,6 +233,8 @@ def main(args: argparse.Namespace) -> None:
             verbose=True,
             threshold=0.00001,
         )
+        
+        print("Beginning training...")
 
         # Train the model
         _, loss = train(
