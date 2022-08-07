@@ -27,7 +27,7 @@ class FreiHAND(Dataset):
     def __init__(self, config, set_type="train"):
         # Define class attributes.
         self.device = config["device"]
-        self.data_dir = os.path.join(os.getcwd(), os.path.join(config["data_dir"], "training/rgb"))
+        self.data_dir = os.path.join(config["data_dir"], "training/rgb")
         self.data_names = np.sort(os.listdir(self.data_dir))
 
         # Open data files.

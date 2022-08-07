@@ -30,7 +30,7 @@ from utils.utils import (
 )
 
 config = {
-    "data_dir": "data/FreiHAND_pub_v2",
+    "data_dir": "/content/drive/My\ Drive/Github/SegFormer-Hand-Pose-Estimation/data/FreiHAND_pub_v2",
     "inference_dir": "inference",
     "model_path": "weights/ViT_model_final.pth",
     "epochs": 500,
