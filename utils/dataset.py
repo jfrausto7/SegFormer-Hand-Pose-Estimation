@@ -42,12 +42,12 @@ class FreiHAND(Dataset):
         # Set dataset split
         if set_type == "train":
             n_start = 0
-            n_end = 104000
+            n_end = 80000
         elif set_type == "val":
-            n_start = 104000
-            n_end = 124000
+            n_start = 80000
+            n_end = 100000
         else:
-            n_start = 124000
+            n_start = 100000
             n_end = len(self.annotation_3d)
 
         # Utilize variables to split dataset
@@ -66,12 +66,10 @@ class FreiHAND(Dataset):
         )
     
     def __len__(self):
-        return 104000   # hardcoded len(self.annotation_3d)
+        return len(self.annotation_3d)
 
     def __getitem__(self, index):
         # Pull data from index
-        print(len(self.annotation_3d))
-        print(len(self.data_names))
         image_name = self.data_names[index]
         raw = Image.open(os.path.join(self.data_dir, image_name))
         image_raw = self.image_raw_transformed(raw)
