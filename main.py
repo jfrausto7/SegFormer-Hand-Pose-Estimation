@@ -82,7 +82,7 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--previous",
-        default=1,
+        default=0,
         type=int,
         help="Previous epoch checkpoint",
         dest="previous",
@@ -232,10 +232,10 @@ def main(args: argparse.Namespace) -> None:
             scale_factors=[8, 4, 2, 1],
             num_classes=N_KEYPOINTS,
         )
-        if args.previous != 1:
+        if args.previous != 0:
             segformer.load_state_dict(
                 torch.load(
-                    "weights/ViT_model_{}".format(str(args.previous).zfill(3)), map_location=torch.device(config["device"])
+                    "weights/ViT_model_{}".format(str(args.previous + 1).zfill(3)), map_location=torch.device(config["device"])
                 )
             )
             segformer.eval()
