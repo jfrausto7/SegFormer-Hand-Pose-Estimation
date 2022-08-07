@@ -218,9 +218,9 @@ def main(args: argparse.Namespace) -> None:
             patch_sizes=[3, 3, 3, 3],
             overlap_sizes=[1, 1, 1, 1],
             reduction_ratios=[4, 2, 1, 1],
-            mlp_expansions=[4, 4, 4, 4],
+            mlp_expansions=[2, 2, 2, 2],
             decoder_channels=256,
-            scale_factors=[4, 2, 1, 1],
+            scale_factors=[8, 4, 2, 1],
             num_classes=N_KEYPOINTS,
         )
         print("Created SegFormer model!")
