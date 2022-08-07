@@ -38,7 +38,6 @@ class FreiHAND(Dataset):
         fn_annotation_3d = os.path.join(config["data_dir"], "training_xyz.json")
         with open(fn_annotation_3d, "r") as file:
             self.annotation_3d = np.tile(np.array(json.load(file)), (4, 1, 1))
-        len(self.annotation_3d)
 
         # Set dataset split
         if set_type == "train":
@@ -71,6 +70,8 @@ class FreiHAND(Dataset):
 
     def __getitem__(self, index):
         # Pull data from index
+        print(len(self.annotation_3d))
+        print(len(self.data_names))
         image_name = self.data_names[index]
         raw = Image.open(os.path.join(self.data_dir, image_name))
         image_raw = self.image_raw_transformed(raw)
