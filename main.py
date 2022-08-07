@@ -232,13 +232,13 @@ def main(args: argparse.Namespace) -> None:
             scale_factors=[8, 4, 2, 1],
             num_classes=N_KEYPOINTS,
         )
-        if args.previous != 0:
-            model.load_state_dict(
+        if args.previous != 1:
+            segformer.load_state_dict(
                 torch.load(
-                    config["model_path"], map_location=torch.device(config["device"])
+                    "weights/ViT_model_{}".format(str(args.previous).zfill(3)), map_location=torch.device(config["device"])
                 )
             )
-            model.eval()
+            segformer.eval()
             print("Loaded model!")
         else:
             print("Created new SegFormer model!")
