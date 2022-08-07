@@ -38,7 +38,7 @@ class FreiHAND(Dataset):
         fn_annotation_3d = os.path.join(config["data_dir"], "training_xyz.json")
         with open(fn_annotation_3d, "r") as file:
             self.annotation_3d = np.tile(np.array(json.load(file)), (4, 1, 1))
-            len(self.annotation_3d)
+        len(self.annotation_3d)
 
         # Set dataset split
         if set_type == "train":
