@@ -64,6 +64,10 @@ class FreiHAND(Dataset):
                 transforms.Normalize(mean=DATASET_MEANS, std=DATASET_STDS),
             ]
         )
+    
+    def __len__(self):
+        print(len(self.annotation_3d))
+        return len(self.annotation_3d)
 
     def __getitem__(self, index):
         # Pull data from index
@@ -89,7 +93,3 @@ class FreiHAND(Dataset):
             "keypoints": keypoints,
             "heatmaps": heatmaps,
         }
-
-    def __len__(self):
-        return len(self.annotation_3d)
-

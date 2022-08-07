@@ -234,8 +234,6 @@ def main(args: argparse.Namespace) -> None:
             threshold=0.00001,
         )
         
-        print("Beginning training...")
-
         # Train the model
         _, loss = train(
             train_dataloader,
