@@ -10,7 +10,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from torchsummary import summary  # type: ignore
-from torchviz import make_dot   # type: ignore3
+from torchviz import make_dot   # type: ignore
 from models.model import IoULoss, SegFormer
 
 from utils.dataset import FreiHAND
