@@ -215,7 +215,7 @@ def main(args: argparse.Namespace) -> None:
             widths=[16, 32, 64, 128],
             depths=[2, 4, 6, 3],
             all_num_heads=[1, 2, 4, 8],
-            patch_sizes=[3, 3, 3, 3],
+            patch_sizes=[2, 2, 2, 2],
             overlap_sizes=[1, 1, 1, 1],
             reduction_ratios=[4, 2, 1, 1],
             mlp_expansions=[2, 2, 2, 2],
