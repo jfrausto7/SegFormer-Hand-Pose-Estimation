@@ -217,7 +217,7 @@ def main(args: argparse.Namespace) -> None:
             all_num_heads=[1, 2, 4, 8],
             patch_sizes=[3, 3, 3, 3],
             overlap_sizes=[1, 1, 1, 1],
-            reduction_ratios=[4, 2, 1, 1],
+            reduction_ratios=[1, 1, 1, 1],
             mlp_expansions=[2, 2, 2, 2],
             decoder_channels=256,
             scale_factors=[8, 4, 2, 1],
