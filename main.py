@@ -151,7 +151,7 @@ def train(
 ):
     print("Starting training...")
     if args.load_loss:
-        f = open("results/losses.pkl","rb")
+        f = open("results/losses.pkl", "rb")
         loss = pickle.load(f)
         f.close()
     else:
@@ -196,7 +196,7 @@ def train(
             # create a binary pickle file 
             f = open("results/losses.pkl","wb")
             # write the python object (dict) to pickle file
-            pickle.dump(loss,f, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(loss, f, protocol=pickle.HIGHEST_PROTOCOL)
             # close file
             f.close()
             print("Saved model at checkpoint!")
