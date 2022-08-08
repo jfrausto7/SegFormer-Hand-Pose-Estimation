@@ -253,7 +253,7 @@ def main(args: argparse.Namespace) -> None:
         if args.previous != 0:
             segformer.load_state_dict(
                 torch.load(
-                    "weights/SegFormer_model_{}".format(str(args.previous + 1).zfill(3)), map_location=torch.device(config["device"])
+                    "weights/SegFormer_model_{}".format(str(args.previous).zfill(3)), map_location=torch.device(config["device"])
                 )
             )
             segformer.eval()
