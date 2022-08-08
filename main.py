@@ -3,6 +3,7 @@ import os
 from matplotlib import pyplot as plt
 from PIL import Image
 import numpy as np
+import pickle
 
 import torch
 import torch.optim as optim
@@ -150,7 +151,7 @@ def train(
 ):
     print("Starting training...")
     if args.load_loss:
-        loss = open("losses.pkl","rb")
+        loss = pickle.load(open("results/losses.pkl","rb"))
     else:
         loss = {"train": [], "val": []}
     for epoch in range(args.previous, epochs):
@@ -191,7 +192,7 @@ def train(
                 "weights/SegFormer_model_{}".format(str(epoch + 1).zfill(3)),
             )
             # create a binary pickle file 
-            f = open("losses.pkl","wb")
+            f = open("results/losses.pkl","wb")
             # write the python object (dict) to pickle file
             pickle.dump(loss,f, protocol=pickle.HIGHEST_PROTOCOL)
             # close file
