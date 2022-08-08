@@ -251,9 +251,10 @@ def main(args: argparse.Namespace) -> None:
             num_classes=N_KEYPOINTS,
         )
         if args.previous != 0:
+            num = args.previous if args.previous % config["checkpoint_frequency"] == 0 else args.previous - config["checkpoint_frequency"]
             segformer.load_state_dict(
                 torch.load(
-                    "weights/SegFormer_model_{}".format(str(args.previous).zfill(3)), map_location=torch.device(config["device"])
+                    "weights/SegFormer_model_{}".format(str(num).zfill(3)), map_location=torch.device(config["device"])
                 )
             )
             segformer.eval()
