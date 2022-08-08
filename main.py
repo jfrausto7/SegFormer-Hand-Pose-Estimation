@@ -417,7 +417,7 @@ def main(args: argparse.Namespace) -> None:
             num_classes=N_KEYPOINTS,
         )
         # Print model summary
-        summary(segformer, (config["batch_size"], N_IMG_CHANNELS, MODEL_IMG_SIZE, MODEL_IMG_SIZE))
+        summary(segformer, (N_IMG_CHANNELS, MODEL_IMG_SIZE, MODEL_IMG_SIZE))
 
     if args.viz:
         # visualize model
