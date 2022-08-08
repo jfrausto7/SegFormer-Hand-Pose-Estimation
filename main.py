@@ -286,7 +286,7 @@ def main(args: argparse.Namespace) -> None:
         print("Loading model...")
         model = SegFormer(
             in_channels=N_IMG_CHANNELS,
-            widths=[32, 64, 128, 256],
+            widths=[64, 128, 256, 512],
             depths=[3, 4, 6, 3],
             all_num_heads=[1, 2, 4, 8],
             patch_sizes=[7, 3, 3, 3],
@@ -342,11 +342,11 @@ def main(args: argparse.Namespace) -> None:
         print("Loading model...")
         model = SegFormer(
             in_channels=N_IMG_CHANNELS,
-            widths=[16, 32, 64, 128],
-            depths=[2, 4, 6, 3],
+            widths=[64, 128, 256, 512],
+            depths=[3, 4, 6, 3],
             all_num_heads=[1, 2, 4, 8],
             patch_sizes=[7, 3, 3, 3],
-            overlap_sizes=[1, 1, 1, 1],
+            overlap_sizes=[4, 2, 2, 2],
             reduction_ratios=[8, 4, 2, 1],
             mlp_expansions=[4, 4, 4, 4],
             decoder_channels=256,
@@ -405,7 +405,7 @@ def main(args: argparse.Namespace) -> None:
     if args.summary:
         segformer = SegFormer(
             in_channels=N_IMG_CHANNELS,
-            widths=[32, 64, 128, 256],
+            widths=[64, 128, 256, 512],
             depths=[3, 4, 6, 3],
             all_num_heads=[1, 2, 4, 8],
             patch_sizes=[7, 3, 3, 3],
@@ -423,7 +423,7 @@ def main(args: argparse.Namespace) -> None:
         # visualize model
         model = SegFormer(
             in_channels=N_IMG_CHANNELS,
-            widths=[32, 64, 128, 256],
+            widths=[64, 128, 256, 512],
             depths=[3, 4, 6, 3],
             all_num_heads=[1, 2, 4, 8],
             patch_sizes=[7, 3, 3, 3],
