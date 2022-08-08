@@ -32,13 +32,13 @@ from utils.utils import (
 config = {
     "data_dir": "./data/FreiHAND_pub_v2",
     "inference_dir": "inference",
-    "model_path": "weights/ViT_model_final.pth",
+    "model_path": "weights/SegFormer_model_final.pth",
     "epochs": 500,
     "checkpoint_frequency": 2,
-    "batch_size": 64,
+    "batch_size": 48,
     "test_batch_size": 4,
-    "batches_per_epoch": 25,
-    "batches_per_epoch_val": 10,
+    "batches_per_epoch": 50,
+    "batches_per_epoch_val": 20,
     "learning_rate": 0.1,
     "num_workers": 2 if torch.cuda.is_available() else 0,
     "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
@@ -179,7 +179,7 @@ def train(
         if (epoch + 1) % checkpoint_frequency == 0:
             torch.save(
                 model.state_dict(),
-                "weights/ViT_model_{}".format(str(epoch + 1).zfill(3)),
+                "weights/SegFormer_model_{}".format(str(epoch + 1).zfill(3)),
             )
             print("Saved model at checkpoint!")
 
@@ -235,7 +235,7 @@ def main(args: argparse.Namespace) -> None:
         if args.previous != 0:
             segformer.load_state_dict(
                 torch.load(
-                    "weights/ViT_model_{}".format(str(args.previous + 1).zfill(3)), map_location=torch.device(config["device"])
+                    "weights/SegFormer_model_{}".format(str(args.previous + 1).zfill(3)), map_location=torch.device(config["device"])
                 )
             )
             segformer.eval()
