@@ -89,6 +89,12 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--load_loss",
+        action="store_true",
+        dest="load_loss",
+    )
+
+    parser.add_argument(
         "--visualize",
         help="Save a visualization of model architecture",
         action="store_true",
@@ -143,7 +149,10 @@ def train(
     early_stopping_epochs,
 ):
     print("Starting training...")
-    loss = {"train": [], "val": []}
+    if args.load_loss:
+        loss = open("losses.pkl","rb")
+    else:
+        loss = {"train": [], "val": []}
     for epoch in range(args.previous, epochs):
         epoch_train(
             train_dataloader,
@@ -175,12 +184,18 @@ def train(
         if scheduler is not None:
             scheduler.step(loss["train"][-1])
 
-        # save model
+        # save model and losses
         if (epoch + 1) % checkpoint_frequency == 0:
             torch.save(
                 model.state_dict(),
                 "weights/SegFormer_model_{}".format(str(epoch + 1).zfill(3)),
             )
+            # create a binary pickle file 
+            f = open("losses.pkl","wb")
+            # write the python object (dict) to pickle file
+            pickle.dump(loss,f, protocol=pickle.HIGHEST_PROTOCOL)
+            # close file
+            f.close()
             print("Saved model at checkpoint!")
 
         # stop early
