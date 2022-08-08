@@ -9,7 +9,7 @@ import torch.optim as optim
 from torchvision import transforms
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from torchsummary import summary  # type: ignore
+from torchinfo import summary  # type: ignore
 from torchviz import make_dot   # type: ignore
 from models.model import IoULoss, SegFormer
 
@@ -417,7 +417,7 @@ def main(args: argparse.Namespace) -> None:
             num_classes=N_KEYPOINTS,
         )
         # Print model summary
-        summary(segformer, (N_IMG_CHANNELS, MODEL_IMG_SIZE, MODEL_IMG_SIZE))
+        summary(segformer, (32, N_IMG_CHANNELS, MODEL_IMG_SIZE, MODEL_IMG_SIZE))
 
     if args.viz:
         # visualize model
