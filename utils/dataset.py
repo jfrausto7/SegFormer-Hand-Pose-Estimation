@@ -42,12 +42,12 @@ class FreiHAND(Dataset):
         # Set dataset split
         if set_type == "train":
             n_start = 0
-            n_end = 80000
-        elif set_type == "val":
-            n_start = 80000
             n_end = 100000
-        else:
+        elif set_type == "val":
             n_start = 100000
+            n_end = 125000
+        else:
+            n_start = 125000
             n_end = len(self.annotation_3d)
 
         # Utilize variables to split dataset
