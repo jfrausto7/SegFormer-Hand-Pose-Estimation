@@ -36,11 +36,11 @@ config = {
     "model_path": "weights/SegFormer_model_final.pth",
     "epochs": 500,
     "checkpoint_frequency": 2,
-    "batch_size": 48,
+    "batch_size": 64,
     "test_batch_size": 4,
     "batches_per_epoch": 50,
     "batches_per_epoch_val": 20,
-    "learning_rate": 0.1,
+    "learning_rate": 0.01,
     "num_workers": 2 if torch.cuda.is_available() else 0,
     "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
 }
