@@ -151,7 +151,9 @@ def train(
 ):
     print("Starting training...")
     if args.load_loss:
-        loss = pickle.load(open("results/losses.pkl","rb"))
+        f = open("results/losses.pkl","rb")
+        loss = pickle.load(f)
+        f.close()
     else:
         loss = {"train": [], "val": []}
     for epoch in range(args.previous, epochs):
