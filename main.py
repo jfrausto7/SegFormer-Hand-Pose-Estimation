@@ -210,6 +210,7 @@ def train(
             val_loss = np.round(
                 np.mean(loss["val"][-early_stopping_avg:]), early_stopping_precision,
             )
+            min_val_loss = np.round(np.mean(loss["val"]), early_stopping_precision)
             if val_loss >= min_val_loss:
                 no_decrease_epochs += 1
             else:
