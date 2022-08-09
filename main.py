@@ -154,6 +154,8 @@ def train(
         f = open("results/losses.pkl", "rb")
         loss = pickle.load(f)
         f.close()
+        min_val_loss = np.round(np.mean(loss["val"]), early_stopping_precision)
+        no_decrease_epochs = args.previous
     else:
         loss = {"train": [], "val": []}
     for epoch in range(args.previous, epochs):
@@ -210,7 +212,6 @@ def train(
             val_loss = np.round(
                 np.mean(loss["val"][-early_stopping_avg:]), early_stopping_precision,
             )
-            min_val_loss = np.round(np.mean(loss["val"]), early_stopping_precision)
             if val_loss >= min_val_loss:
                 no_decrease_epochs += 1
             else:
