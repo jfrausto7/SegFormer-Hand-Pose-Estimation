@@ -90,12 +90,6 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--load_loss",
-        action="store_true",
-        dest="load_loss",
-    )
-
-    parser.add_argument(
         "--visualize",
         help="Save a visualization of model architecture",
         action="store_true",
@@ -150,7 +144,7 @@ def train(
     early_stopping_epochs,
 ):
     print("Starting training...")
-    if args.load_loss:
+    if args.previous != 0:
         f = open("results/losses.pkl", "rb")
         loss = pickle.load(f)
         f.close()
