@@ -205,6 +205,7 @@ def show_batch_predictions(batch_data, model):
         plt.title("Pred Keypoints")
         plt.axis("off")
     plt.tight_layout()
+    plt.show()
 
 
 def chunks(data: Iterable, sizes: List[int]):
