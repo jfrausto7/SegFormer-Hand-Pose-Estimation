@@ -166,7 +166,7 @@ def show_batch_predictions(batch_data, model):
     true_keypoints = batch_data["keypoints"].numpy()
     batch_size = true_keypoints.shape[0]
     pred_heatmaps = model(inputs)
-    outputs = outputs.repeat(1,1,4,4)   # repeat to match shape
+    pred_heatmaps = pred_heatmaps.repeat(1,1,4,4)   # repeat to match shape
     pred_heatmaps = pred_heatmaps.detach().numpy()
     pred_keypoints = heatmaps_to_coordinates(pred_heatmaps)
     images = batch_data["image_raw"].numpy()
