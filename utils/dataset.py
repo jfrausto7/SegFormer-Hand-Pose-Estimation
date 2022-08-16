@@ -72,8 +72,8 @@ class FreiHAND(Dataset):
         # Pull data from index
         image_name = self.data_names[index]
         raw = Image.open(os.path.join(self.data_dir, image_name))
-        image_raw = self.image_raw_transformed(raw)
         image = self.image_transformed(raw)
+        image_raw = self.image_raw_transformed(raw)
 
         # Initialize keypoints & heatmaps
         keypoints = projectPoints(self.annotation_3d[index], self.k_matrix[index])
