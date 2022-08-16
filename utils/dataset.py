@@ -33,21 +33,21 @@ class FreiHAND(Dataset):
         # Open data files
         fn_k_matrix = os.path.join(config["data_dir"], "training_K.json")
         with open(fn_k_matrix, "r") as file:
-            self.k_matrix = np.tile(np.array(json.load(file)), (4, 1, 1))
+            self.k_matrix = np.array(json.load(file))
 
         fn_annotation_3d = os.path.join(config["data_dir"], "training_xyz.json")
         with open(fn_annotation_3d, "r") as file:
-            self.annotation_3d = np.tile(np.array(json.load(file)), (4, 1, 1))
+            self.annotation_3d = np.array(json.load(file))
 
         # Set dataset split
         if set_type == "train":
             n_start = 0
-            n_end = 100000
+            n_end = 26000
         elif set_type == "val":
-            n_start = 100000
-            n_end = 125000
+            n_start = 26000
+            n_end = 31000
         else:
-            n_start = 125000
+            n_start = 31000
             n_end = len(self.annotation_3d)
 
         # Utilize variables to split dataset
