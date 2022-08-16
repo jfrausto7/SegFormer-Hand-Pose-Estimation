@@ -78,7 +78,7 @@ class FreiHAND(Dataset):
         image = self.image_transformed(raw)
 
         # Initialize keypoints & heatmaps
-        keypoints = projectPoints(self.anno[index], self.K_matrix[index])
+        keypoints = projectPoints(self.annotation_3d[index], self.k_matrix[index])
         keypoints = keypoints / RAW_IMG_SIZE
         heatmaps = vector_to_heatmaps(keypoints)
 
