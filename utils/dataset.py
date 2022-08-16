@@ -55,6 +55,8 @@ class FreiHAND(Dataset):
         self.k_matrix = self.k_matrix[n_start:n_end]
         self.annotation_3d = self.annotation_3d[n_start:n_end]
 
+        print(self.data_names)
+
         # Apply transformations to raw data
         self.image_raw_transformed = transforms.ToTensor()
         self.image_transformed = transforms.Compose(
