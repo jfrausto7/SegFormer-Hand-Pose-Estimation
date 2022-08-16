@@ -294,7 +294,7 @@ def main(args: argparse.Namespace) -> None:
         test_dataloader = DataLoader(
             test_dataset,
             config["test_batch_size"],
-            shuffle=True,
+            shuffle=False,
             drop_last=False,
             num_workers=config["num_workers"],
         )
